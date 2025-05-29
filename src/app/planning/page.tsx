@@ -29,6 +29,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { MiniCalendar } from "@/components/planning/mini-calendar";
+import { DashboardSummary } from "@/components/planning/dashboard-summary";
 
 const taskPlanningSchema = z.object({
   taskDescription: z.string().min(10, "Task description must be at least 10 characters."),
@@ -137,7 +139,7 @@ export default function TaskPlanningPage() {
       title: "Task Status Updated",
       description: `"${taskToUpdate.taskName}" moved to ${newStatus}.`,
     });
-  }, [plannedTasks]);
+  }, [plannedTasks, toast]);
 
 
   const handleToggleSubTaskStatus = useCallback((taskId: string, dailyTaskIndex: number, subTaskIndex: number) => {
@@ -153,7 +155,7 @@ export default function TaskPlanningPage() {
 
       // Update daily task status based on its sub-tasks
       const allSubTasksCompleted = taskToUpdate.dailyTasks[dailyTaskIndex].subTasks.every(st => st.status === "completed");
-      const anySubTaskInProgress = taskToUpdate.dailyTasks[dailyTaskIndex].subTasks.some(st => st.status === "inprogress"); // If subtasks can be inprogress
+      const anySubTaskInProgress = taskToUpdate.dailyTasks[dailyTaskIndex].subTasks.some(st => st.status === "inprogress"); 
 
       if (allSubTasksCompleted) {
         taskToUpdate.dailyTasks[dailyTaskIndex].status = "completed";
@@ -207,7 +209,6 @@ export default function TaskPlanningPage() {
 
   const handleSaveEditedTask = (updatedTask: PlannedTask) => {
     setIsSavingEdit(true);
-    // Ensure IDs and statuses are preserved or correctly re-initialized for daily/sub tasks if structure changed
      const taskWithProperSubItems = {
       ...updatedTask,
       dailyTasks: updatedTask.dailyTasks.map((dt, dtIdx) => ({
@@ -223,13 +224,6 @@ export default function TaskPlanningPage() {
     };
 
     updateTaskInList(taskWithProperSubItems);
-    // Recalculate statuses after edit, in case sub-items were changed
-    const taskIndex = plannedTasks.findIndex(t => t.id === updatedTask.id);
-    if (taskIndex !== -1) {
-        // This is a bit simplified; ideally, you'd run the cascade logic
-        // For now, we just update the main task. More complex edits would need full cascade.
-    }
-
     setIsEditModalOpen(false);
     setEditingTask(null);
     setIsSavingEdit(false);
@@ -273,58 +267,65 @@ export default function TaskPlanningPage() {
     <div className="flex h-full flex-col">
       <AppHeader title="AI Task Management" />
       <main className="flex-1 overflow-y-auto p-4 md:p-6">
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
-          <Card className="lg:col-span-1 h-fit sticky top-6">
-            <CardHeader>
-              <CardTitle>Plan a New Task</CardTitle>
-              <CardDescription>Describe your task and set a deadline. AI will help you break it down.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit(onSubmitAiTask)} className="space-y-4">
-                <div>
-                  <Label htmlFor="taskDescription">Task Description</Label>
-                  <Textarea
-                    id="taskDescription"
-                    placeholder="e.g., Write a blog post about AI in content creation"
-                    {...register("taskDescription")}
-                    className={errors.taskDescription ? "border-destructive" : ""}
-                  />
-                  {errors.taskDescription && (
-                    <p className="text-sm text-destructive mt-1">{errors.taskDescription.message}</p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="deadline">Deadline</Label>
-                  <Input
-                    id="deadline"
-                    placeholder="e.g., End of next week, Tomorrow evening"
-                    {...register("deadline")}
-                    className={errors.deadline ? "border-destructive" : ""}
-                  />
-                  {errors.deadline && (
-                    <p className="text-sm text-destructive mt-1">{errors.deadline.message}</p>
-                  )}
-                </div>
-                <Button type="submit" className="w-full" disabled={isAiPending}>
-                  {isAiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PackagePlus className="mr-2 h-4 w-4" />}
-                  Plan Task with AI
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3 @container">
+          <div className="lg:col-span-1 flex flex-col gap-6">
+            <Card className="h-fit sticky top-6 shadow-lg">
+              <CardHeader>
+                <CardTitle>Plan a New Task</CardTitle>
+                <CardDescription>Describe your task and set a deadline. AI will help you break it down.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit(onSubmitAiTask)} className="space-y-4">
+                  <div>
+                    <Label htmlFor="taskDescription">Task Description</Label>
+                    <Textarea
+                      id="taskDescription"
+                      placeholder="e.g., Write a blog post about AI in content creation"
+                      {...register("taskDescription")}
+                      className={errors.taskDescription ? "border-destructive" : ""}
+                    />
+                    {errors.taskDescription && (
+                      <p className="text-sm text-destructive mt-1">{errors.taskDescription.message}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label htmlFor="deadline">Deadline</Label>
+                    <Input
+                      id="deadline"
+                      placeholder="e.g., End of next week, Tomorrow evening"
+                      {...register("deadline")}
+                      className={errors.deadline ? "border-destructive" : ""}
+                    />
+                    {errors.deadline && (
+                      <p className="text-sm text-destructive mt-1">{errors.deadline.message}</p>
+                    )}
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isAiPending}>
+                    {isAiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PackagePlus className="mr-2 h-4 w-4" />}
+                    Plan Task with AI
+                  </Button>
+                </form>
+              </CardContent>
+              <CardFooter className="flex-col items-start p-4 border-t">
+                <h3 className="text-sm font-medium mb-2 text-card-foreground/80">Calendar</h3>
+                 <MiniCalendar />
+              </CardFooter>
+            </Card>
+          </div>
 
           <div className="lg:col-span-2">
+            <DashboardSummary tasks={plannedTasks} />
              {plannedTasks.length === 0 && !isAiPending ? (
                <Alert className="bg-primary/5 col-span-full mt-6 lg:mt-0">
                 <ListChecks className="h-4 w-4 text-primary" />
                 <AlertTitle className="font-semibold text-primary">No tasks planned yet.</AlertTitle>
                 <AlertDescription className="text-foreground/80">
-                  Use the form to create your first AI-assisted task plan. Tasks will appear here in "Todo", "In Progress", and "Completed" columns.
+                  Use the form to create your first AI-assisted task plan. Tasks will appear here.
                 </AlertDescription>
               </Alert>
             ) : (
-              <ScrollArea className="h-[calc(100vh-10rem)]"> 
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 @container">
+              <ScrollArea className="h-[calc(100vh-18rem)] @lg:h-[calc(100vh-12rem)]"> {/* Adjusted height for dashboard summary */}
+                 <div className="grid grid-cols-1 @[30rem]:grid-cols-2 @[60rem]:grid-cols-3 gap-4">
                   {(["todo", "inprogress", "completed"] as TaskStatus[]).map((status) => (
                     <div key={status} className="space-y-4 p-2 rounded-lg bg-muted/30 min-h-[200px]">
                       <h3 className="text-lg font-semibold capitalize sticky top-0 bg-muted/50 py-2 z-10 px-1 rounded">{status} ({categorizedTasks[status].length})</h3>
@@ -382,4 +383,3 @@ export default function TaskPlanningPage() {
     </div>
   );
 }
-
