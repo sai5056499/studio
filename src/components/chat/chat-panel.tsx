@@ -1,0 +1,219 @@
+"use client";
+
+import { useState, useRef, useEffect, useTransition } from "react";
+import type { FormEvent } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ChatMessageCard } from "./chat-message-card";
+import { PageContentModal } from "./page-content-modal";
+import { useChat } from "@/contexts/chat-context";
+import { summarizePageContent, type SummarizePageContentInput } from "@/ai/flows/summarize-page-content";
+import { improvePageContent, type ImprovePageContentInput } from "@/ai/flows/improve-page-content";
+import { useToast } from "@/hooks/use-toast";
+import { SendHorizonal, FileText, Edit3, Loader2, Trash2, Sparkles } from "lucide-react";
+import type { PageContentSource, ChatMessage } from "@/lib/types";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+export function ChatPanel() {
+  const { messages, addMessage, addMessages, clearChat, isLoading, setIsLoading } = useChat();
+  const [input, setInput] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTo({
+        top: scrollAreaRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [messages]);
+
+  const handleGenericAICall = async (
+    aiFunction: (input: any) => Promise<any>,
+    inputData: any,
+    userMessageContent: string,
+    messageType: ChatMessage["type"]
+  ) => {
+    setIsLoading(true);
+    try {
+      const result = await aiFunction(inputData);
+      addMessage({
+        id: Date.now().toString(),
+        role: "assistant",
+        content: typeof result === 'string' ? result : JSON.stringify(result),
+        timestamp: new Date(),
+        type: messageType,
+        data: result,
+      });
+    } catch (error) {
+      console.error(`Error calling AI for ${messageType}:`, error);
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+      addMessage({
+        id: Date.now().toString(),
+        role: "assistant",
+        content: `Sorry, I couldn't process that request: ${errorMessage}`,
+        timestamp: new Date(),
+        type: "error",
+        data: { error: errorMessage },
+      });
+      toast({
+        title: `Error during ${messageType}`,
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSummarize = (pageContent: string, sourceUrl?: string) => {
+    const userDisplayContent = `Please summarize the content ${sourceUrl ? `from ${sourceUrl}` : 'provided'}.`;
+    const systemMessageContent = `Content for summarization${sourceUrl ? ` from ${sourceUrl}` : ''}:\n\n${pageContent.substring(0, 500)}${pageContent.length > 500 ? '...' : ''}`;
+    
+    addMessages([
+      {
+        id: (Date.now() -1).toString(),
+        role: "system",
+        content: systemMessageContent,
+        timestamp: new Date(),
+      },
+      {
+        id: Date.now().toString(),
+        role: "user",
+        content: userDisplayContent,
+        timestamp: new Date(),
+      }
+    ]);
+    startTransition(() => {
+      handleGenericAICall(summarizePageContent, { pageContent } as SummarizePageContentInput, userDisplayContent, "summary");
+    });
+  };
+
+  const handleImproveContent = (pageContent: string, sourceUrl?: string) => {
+    const userDisplayContent = `Please provide improvement suggestions for the content ${sourceUrl ? `from ${sourceUrl}` : 'provided'}.`;
+    const systemMessageContent = `Content for improvement${sourceUrl ? ` from ${sourceUrl}` : ''}:\n\n${pageContent.substring(0, 500)}${pageContent.length > 500 ? '...' : ''}`;
+    
+    addMessages([
+      {
+        id: (Date.now() -1).toString(),
+        role: "system",
+        content: systemMessageContent,
+        timestamp: new Date(),
+      },
+      {
+        id: Date.now().toString(),
+        role: "user",
+        content: userDisplayContent,
+        timestamp: new Date(),
+      }
+    ]);
+    startTransition(() => {
+      handleGenericAICall(improvePageContent, { pageContent } as ImprovePageContentInput, userDisplayContent, "improvement");
+    });
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading || isPending) return;
+
+    const newUserMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: "user",
+      content: input,
+      timestamp: new Date(),
+    };
+    addMessage(newUserMessage);
+    
+    // Basic AI response simulation if no specific AI flow is triggered
+    // For a real chat, you'd integrate with a conversational AI flow here.
+    // This example focuses on specific GenAI flows.
+    // For now, we'll just add a placeholder response.
+    // A more complex app would use a general purpose chat AI.
+    // The current GenAI flows are specific, not for general chat.
+    startTransition(async () => {
+      setIsLoading(true);
+      // Simulate AI thinking time
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      addMessage({
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "I've received your message. You can use the buttons above for specific actions like summarizing or improving content, or use the Task Planning page.",
+        timestamp: new Date(),
+        type: "text",
+      });
+      setIsLoading(false);
+    });
+
+    setInput("");
+  };
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex gap-2">
+          <PageContentModal
+            triggerButton={
+              <Button variant="outline" size="sm" disabled={isLoading || isPending}>
+                <FileText className="mr-2 h-4 w-4" /> Analyze Page
+              </Button>
+            }
+            title="Analyze Page Content"
+            description="Paste the content of the webpage you want to analyze or summarize."
+            actionButtonText="Summarize Content"
+            onConfirm={handleSummarize}
+          />
+          <PageContentModal
+            triggerButton={
+              <Button variant="outline" size="sm" disabled={isLoading || isPending}>
+                <Edit3 className="mr-2 h-4 w-4" /> Improve Content
+              </Button>
+            }
+            title="Improve Page Content"
+            description="Paste the content you want AI-powered improvement suggestions for."
+            actionButtonText="Get Suggestions"
+            onConfirm={handleImproveContent}
+          />
+        </div>
+         <Button variant="ghost" size="icon" onClick={clearChat} disabled={isLoading || isPending || messages.length === 0} aria-label="Clear chat">
+            <Trash2 className="h-5 w-5 text-muted-foreground hover:text-destructive" />
+          </Button>
+      </div>
+
+      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+        <div className="space-y-4">
+          {messages.length === 0 && (
+             <Alert className="bg-primary/5">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <AlertTitle className="font-semibold text-primary">Welcome to Content Ally!</AlertTitle>
+              <AlertDescription className="text-foreground/80">
+                You can chat with me, analyze webpage content for summaries, or get suggestions for content improvement using the buttons above. Head over to Task Planning to create and manage tasks.
+              </AlertDescription>
+            </Alert>
+          )}
+          {messages.map((msg) => (
+            <ChatMessageCard key={msg.id} message={msg} />
+          ))}
+        </div>
+      </ScrollArea>
+
+      <div className="border-t p-4">
+        <form onSubmit={handleSubmit} className="flex items-center gap-2">
+          <Input
+            type="text"
+            placeholder="Type your message..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            className="flex-1"
+            disabled={isLoading || isPending}
+          />
+          <Button type="submit" size="icon" disabled={isLoading || isPending || !input.trim()} aria-label="Send message">
+            {isLoading || isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <SendHorizonal className="h-5 w-5" />}
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+}
