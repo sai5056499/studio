@@ -1,17 +1,16 @@
 
 "use client";
 
-import type { ChatMessage } from "@/lib/types"; 
-import type { AiPoweredTaskPlanningOutput } from "@/ai/flows/ai-powered-task-planning"; 
+import type { ChatMessage, PlannedTask } from "@/lib/types"; // Use PlannedTask for chat
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"; // Removed AvatarImage as it's not used
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"; // Card related imports seem unused here, but might be for future if messages become cards themselves.
-import { Bot, User, AlertTriangle, CheckCircle, Sparkles } from "lucide-react"; // Removed ClipboardList, ChevronRight
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Bot, User, AlertTriangle, CheckCircle, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-
+import { Badge } from "@/components/ui/badge"; // Added for displaying daily task status
 
 interface ChatMessageCardProps {
   message: ChatMessage;
@@ -77,31 +76,39 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
         }
         return <p>{message.content}</p>;
       case "plan":
+        // Ensure message.data is treated as PlannedTask for rich display
         if (message.data && "taskName" in message.data && "dailyTasks" in message.data) {
-          const planData = message.data as AiPoweredTaskPlanningOutput; // Uses the imported type
+          const planData = message.data as PlannedTask; 
           return (
             <div>
               <h4 className="font-semibold mb-1">Task Plan Generated: {planData.taskName}</h4>
               {planData.overallReminder && <p className="text-sm italic mb-2">Reminder: {planData.overallReminder}</p>}
-              <p className="text-sm mb-2">Status: {planData.status || "Todo (Default)"}</p> {/* Display status */}
+              <p className="text-sm mb-1">Overall Status: <Badge variant={planData.status === 'completed' ? 'outline' : planData.status === 'inprogress' ? 'default' : 'secondary'} className="capitalize text-xs">{planData.status || "Todo"}</Badge></p>
               
               <h5 className="font-medium mt-2 mb-1 text-sm">Daily Breakdown:</h5>
               {planData.dailyTasks && planData.dailyTasks.length > 0 ? (
                 <Accordion type="single" collapsible className="w-full">
                   {planData.dailyTasks.map((dailyTask, index) => (
-                    <AccordionItem value={`chat-day-${message.id}-${index}`} key={index} className="border-b-muted/50">
+                    <AccordionItem value={`chat-day-${message.id}-${dailyTask.id || index}`} key={dailyTask.id || index} className="border-b-muted/50">
                       <AccordionTrigger className="text-xs font-medium hover:no-underline py-1.5 px-1 text-left">
-                        {dailyTask.dayDescription}
+                        <div className="flex justify-between items-center w-full">
+                           <span>{dailyTask.dayDescription}</span>
+                           <Badge variant={dailyTask.status === 'completed' ? 'outline' : dailyTask.status === 'inprogress' ? 'default' : 'secondary'} size="sm" className="capitalize text-xs ml-2">{dailyTask.status || "Todo"}</Badge>
+                        </div>
                       </AccordionTrigger>
                       <AccordionContent className="pl-3 pt-1 pb-1 text-xs">
-                        <ul className="list-none space-y-0.5">
-                          {dailyTask.subTasks.map((subTask, subIndex) => (
-                            <li key={subIndex} className="flex items-start">
-                              <CheckCircle className="mr-1.5 mt-0.5 h-3 w-3 text-green-400 shrink-0" />
-                              <span>{subTask}</span>
-                            </li>
-                          ))}
-                        </ul>
+                        {dailyTask.subTasks && dailyTask.subTasks.length > 0 ? (
+                          <ul className="list-none space-y-0.5">
+                            {dailyTask.subTasks.map((subTask, subIndex) => (
+                              <li key={subTask.id || subIndex} className="flex items-start">
+                                {subTask.status === "completed" ? <CheckCircle className="mr-1.5 mt-0.5 h-3 w-3 text-green-400 shrink-0" /> : <Circle className="mr-1.5 mt-0.5 h-3 w-3 text-muted-foreground shrink-0" />}
+                                <span className={cn(subTask.status === "completed" && "line-through text-muted-foreground")}>{subTask.description}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">No sub-tasks for this day.</p>
+                        )}
                       </AccordionContent>
                     </AccordionItem>
                   ))}
@@ -109,11 +116,12 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
               ) : (
                 <p className="text-xs text-muted-foreground">No daily steps provided.</p>
               )}
-               <p className="text-xs mt-2 text-muted-foreground">You can view and manage this task in the "Task Planning" page.</p>
+               <p className="text-xs mt-2 text-muted-foreground">You can view and manage this task in detail on the "AI Task Management" page.</p>
             </div>
           );
         }
-        return <p>{message.content}</p>; 
+        // Fallback for plan type if data structure is not as expected
+        return <p>{message.content} (Plan details might be missing or in old format)</p>; 
       default:
         return <p className="whitespace-pre-wrap">{message.content}</p>;
     }
@@ -149,7 +157,7 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
             "text-xs text-muted-foreground mt-1",
             isUser ? "text-right pr-1" : "text-left pl-1"
           )}>
-          {format(new Date(message.timestamp), "PPpp")} {/* Ensure timestamp is a Date object */}
+          {format(new Date(message.timestamp), "PPpp")}
         </p>
       </div>
       {isUser && (
@@ -162,3 +170,4 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
     </div>
   );
 }
+

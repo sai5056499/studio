@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { PlannedTask } from "@/lib/types";
+import type { PlannedTask, DailyTask, SubTask } from "@/lib/types"; // Import SubTask
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,15 +21,26 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2 } from "lucide-react";
 
-// Schema for editing a task. Daily tasks and overall reminder are strings for simplicity.
-// For complex editing of daily tasks, a more involved UI would be needed.
+// Updated schema for editing a task to reflect new DailyTask and SubTask structure
+const editSubTaskSchema = z.object({
+  id: z.string(),
+  description: z.string().min(1, "Sub-task description cannot be empty."),
+  status: z.enum(["todo", "inprogress", "completed"]),
+});
+
+const editDailyTaskSchema = z.object({
+  id: z.string(),
+  dayDescription: z.string().min(1, "Daily task description cannot be empty."),
+  subTasks: z.array(editSubTaskSchema),
+  status: z.enum(["todo", "inprogress", "completed"]),
+});
+
 const editTaskSchema = z.object({
   taskName: z.string().min(3, "Task name must be at least 3 characters."),
   originalDescription: z.string().min(10, "Original description must be at least 10 characters."),
   deadline: z.string().min(3, "Deadline is required."),
   overallReminder: z.string().optional(),
-  // dailyTasks editing is simplified to a textarea for this version
-  dailyTasksString: z.string().optional().describe("JSON string of daily tasks. For advanced users or simple text edits."),
+  dailyTasksString: z.string().optional().describe("JSON string of daily tasks including sub-tasks and statuses."),
 });
 
 type EditTaskFormValues = z.infer<typeof editTaskSchema>;
@@ -58,12 +69,12 @@ export function EditTaskModal({ isOpen, onOpenChange, task, onSave, isSaving }: 
       setValue("taskName", task.taskName);
       setValue("originalDescription", task.originalDescription);
       setValue("deadline", task.deadline);
-      setValue("overallReminder", task.overallReminder);
-      // Serialize dailyTasks for the textarea. If parsing fails, provide a fallback.
+      setValue("overallReminder", task.overallReminder || "");
       try {
         setValue("dailyTasksString", JSON.stringify(task.dailyTasks, null, 2));
       } catch (e) {
-        setValue("dailyTasksString", "Error parsing daily tasks. Edit manually or re-plan.");
+        setValue("dailyTasksString", "Error parsing daily tasks. Please check console.");
+        console.error("Error serializing daily tasks for modal:", e);
       }
     } else {
       reset({ 
@@ -79,31 +90,42 @@ export function EditTaskModal({ isOpen, onOpenChange, task, onSave, isSaving }: 
   const onSubmit: SubmitHandler<EditTaskFormValues> = (data) => {
     if (!task) return;
 
-    let parsedDailyTasks = task.dailyTasks; // Keep original if parsing fails
-    if (data.dailyTasksString) {
+    let parsedDailyTasks: DailyTask[] = task.dailyTasks; // Keep original if parsing fails or string is empty
+
+    if (data.dailyTasksString && data.dailyTasksString.trim() !== "") {
       try {
-        const newDailyTasks = JSON.parse(data.dailyTasksString);
-        // Basic validation for array structure
-        if (Array.isArray(newDailyTasks)) {
-            parsedDailyTasks = newDailyTasks.map(dt => ({
-                dayDescription: dt.dayDescription || "Untitled Day",
-                subTasks: Array.isArray(dt.subTasks) ? dt.subTasks.map(String) : [],
-            }));
+        const newDailyTasksRaw = JSON.parse(data.dailyTasksString);
+        // Validate and map to ensure structure and default values
+        if (Array.isArray(newDailyTasksRaw)) {
+          parsedDailyTasks = newDailyTasksRaw.map((dt: any, dtIndex: number) => ({
+            id: dt.id || `daily-${task.id}-${Date.now()}-${dtIndex}`,
+            dayDescription: dt.dayDescription || "Untitled Day",
+            status: dt.status && ["todo", "inprogress", "completed"].includes(dt.status) ? dt.status : "todo",
+            subTasks: Array.isArray(dt.subTasks) ? dt.subTasks.map((st: any, stIndex: number) => ({
+              id: st.id || `sub-${task.id}-${dt.id || dtIndex}-${Date.now()}-${stIndex}`,
+              description: st.description || "Untitled Sub-task",
+              status: st.status && ["todo", "inprogress", "completed"].includes(st.status) ? st.status : "todo",
+            } as SubTask)) : [],
+          } as DailyTask));
+        } else {
+            throw new Error("Daily tasks JSON is not an array.");
         }
       } catch (e) {
-        // If parsing fails, we could alert the user or just keep the old tasks
-        console.warn("Failed to parse daily tasks JSON string during edit:", e);
-        // Optionally, you can add a toast message here to inform the user
+        console.error("Failed to parse or validate daily tasks JSON string during edit:", e);
+        // Optionally, add a toast message here to inform the user about the parsing error
+        // For now, we'll proceed with the original dailyTasks if parsing fails.
       }
     }
 
+
     onSave({
-      ...task,
+      ...task, // Spread existing task properties (like id, createdAt, etc.)
       taskName: data.taskName,
       originalDescription: data.originalDescription,
       deadline: data.deadline,
-      overallReminder: data.overallReminder || task.overallReminder,
+      overallReminder: data.overallReminder || task.overallReminder, // Keep original if new is empty
       dailyTasks: parsedDailyTasks,
+      // status will be recalculated based on children by the parent component if necessary
     });
   };
 
@@ -114,7 +136,7 @@ export function EditTaskModal({ isOpen, onOpenChange, task, onSave, isSaving }: 
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
           <DialogTitle>Edit Task: {task.taskName}</DialogTitle>
-          <DialogDescription>Make changes to your task details below.</DialogDescription>
+          <DialogDescription>Make changes to your task details below. Editing daily tasks via JSON requires care.</DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[60vh] pr-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
@@ -157,12 +179,14 @@ export function EditTaskModal({ isOpen, onOpenChange, task, onSave, isSaving }: 
               <Textarea
                 id="edit-dailyTasksString"
                 {...register("dailyTasksString")}
-                rows={8}
-                placeholder='[{"dayDescription": "Day 1", "subTasks": ["Subtask 1"]}]'
+                rows={10}
+                placeholder='[{"id": "daily-1", "dayDescription": "Day 1", "status": "todo", "subTasks": [{"id": "sub-1-1", "description": "Subtask 1", "status": "todo"}]}]'
+                className="font-mono text-xs"
               />
+              {errors.dailyTasksString && <p className="text-sm text-destructive mt-1">{errors.dailyTasksString.message}</p>}
               <p className="text-xs text-muted-foreground mt-1">
-                Edit the daily tasks as a JSON array. Be careful with the formatting.
-                A simpler way to re-plan daily tasks with AI might be added in the future.
+                Edit daily tasks as a JSON array. Ensure each daily task and sub-task has an `id`, `description`, and `status`.
+                Incorrect formatting may lead to errors or data loss for daily tasks.
               </p>
             </div>
           </form>
@@ -179,3 +203,4 @@ export function EditTaskModal({ isOpen, onOpenChange, task, onSave, isSaving }: 
     </Dialog>
   );
 }
+

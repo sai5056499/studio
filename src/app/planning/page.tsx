@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useCallback } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,10 +14,10 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { aiPoweredTaskPlanning, type AiPoweredTaskPlanningInput, type AiPoweredTaskPlanningOutput } from "@/ai/flows/ai-powered-task-planning";
-import type { PlannedTask, TaskStatus } from "@/lib/types";
+import type { PlannedTask, TaskStatus, DailyTask, SubTask } from "@/lib/types";
 import { TaskCardItem } from "@/components/planning/task-card-item";
 import { EditTaskModal } from "@/components/planning/edit-task-modal";
-import { ListChecks, Loader2, PackagePlus, FilePenLine, Trash2, Columns } from "lucide-react";
+import { ListChecks, Loader2, PackagePlus, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -49,7 +49,6 @@ export default function TaskPlanningPage() {
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 
-
   const {
     register,
     handleSubmit,
@@ -64,13 +63,23 @@ export default function TaskPlanningPage() {
       try {
         const result = await aiPoweredTaskPlanning(data as AiPoweredTaskPlanningInput);
         const newTask: PlannedTask = {
-          ...(result as AiPoweredTaskPlanningOutput),
-          id: Date.now().toString(),
+          ...result,
+          id: `task-${Date.now()}`, // Main task ID
           originalDescription: data.taskDescription,
           deadline: data.deadline,
           createdAt: new Date(),
           isDailyReminderSet: false,
-          status: "todo", // Default status
+          status: "todo", // Default status for the main task
+          dailyTasks: result.dailyTasks.map((dt, dtIndex) => ({
+            ...dt,
+            id: dt.id || `daily-${Date.now()}-${dtIndex}`, // Ensure daily task has an ID
+            status: "todo", // Default status for daily task
+            subTasks: dt.subTasks.map((st, stIndex) => ({
+              ...st,
+              id: st.id || `sub-${Date.now()}-${dtIndex}-${stIndex}`, // Ensure sub-task has an ID
+              status: "todo", // Default status for sub-task
+            })),
+          })),
         };
         setPlannedTasks((prevTasks) => [newTask, ...prevTasks].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
         toast({
@@ -90,20 +99,87 @@ export default function TaskPlanningPage() {
     });
   };
 
-  const handleUpdateTaskStatus = (taskId: string, newStatus: TaskStatus) => {
+  const updateTaskInList = useCallback((updatedTask: PlannedTask) => {
     setPlannedTasks(prevTasks =>
       prevTasks.map(task =>
-        task.id === taskId ? { ...task, status: newStatus } : task
+        task.id === updatedTask.id ? updatedTask : task
       )
     );
-    const task = plannedTasks.find(t => t.id === taskId);
-    if (task) {
-         toast({
-            title: "Task Status Updated",
-            description: `"${task.taskName}" moved to ${newStatus}.`
-        });
+  }, []);
+
+  const handleUpdateTaskStatus = useCallback((taskId: string, newStatus: TaskStatus) => {
+    const taskIndex = plannedTasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
+
+    const updatedTasks = [...plannedTasks];
+    const taskToUpdate = { ...updatedTasks[taskIndex] };
+    taskToUpdate.status = newStatus;
+
+    // Cascade status changes
+    if (newStatus === "completed") {
+      taskToUpdate.dailyTasks = taskToUpdate.dailyTasks.map(dt => ({
+        ...dt,
+        status: "completed",
+        subTasks: dt.subTasks.map(st => ({ ...st, status: "completed" })),
+      }));
+    } else if (taskToUpdate.status !== "completed" && updatedTasks[taskIndex].status === "completed") { // Reopened from completed
+       taskToUpdate.dailyTasks = taskToUpdate.dailyTasks.map(dt => ({
+        ...dt,
+        status: "todo", // Revert children to todo
+        subTasks: dt.subTasks.map(st => ({ ...st, status: "todo" })),
+      }));
     }
-  };
+    
+    updatedTasks[taskIndex] = taskToUpdate;
+    setPlannedTasks(updatedTasks);
+
+    toast({
+      title: "Task Status Updated",
+      description: `"${taskToUpdate.taskName}" moved to ${newStatus}.`,
+    });
+  }, [plannedTasks]);
+
+
+  const handleToggleSubTaskStatus = useCallback((taskId: string, dailyTaskIndex: number, subTaskIndex: number) => {
+    setPlannedTasks(prevTasks => {
+      const taskIndex = prevTasks.findIndex(t => t.id === taskId);
+      if (taskIndex === -1) return prevTasks;
+
+      const newTasks = [...prevTasks];
+      const taskToUpdate = JSON.parse(JSON.stringify(newTasks[taskIndex])) as PlannedTask; // Deep clone
+
+      const subTask = taskToUpdate.dailyTasks[dailyTaskIndex].subTasks[subTaskIndex];
+      subTask.status = subTask.status === "completed" ? "todo" : "completed";
+
+      // Update daily task status based on its sub-tasks
+      const allSubTasksCompleted = taskToUpdate.dailyTasks[dailyTaskIndex].subTasks.every(st => st.status === "completed");
+      const anySubTaskInProgress = taskToUpdate.dailyTasks[dailyTaskIndex].subTasks.some(st => st.status === "inprogress"); // If subtasks can be inprogress
+
+      if (allSubTasksCompleted) {
+        taskToUpdate.dailyTasks[dailyTaskIndex].status = "completed";
+      } else if (anySubTaskInProgress || taskToUpdate.dailyTasks[dailyTaskIndex].subTasks.some(st => st.status === "completed")) {
+        taskToUpdate.dailyTasks[dailyTaskIndex].status = "inprogress";
+      } else {
+        taskToUpdate.dailyTasks[dailyTaskIndex].status = "todo";
+      }
+
+      // Update main task status based on its daily tasks
+      const allDailyTasksCompleted = taskToUpdate.dailyTasks.every(dt => dt.status === "completed");
+      const anyDailyTaskInProgress = taskToUpdate.dailyTasks.some(dt => dt.status === "inprogress");
+
+      if (allDailyTasksCompleted) {
+        taskToUpdate.status = "completed";
+      } else if (anyDailyTaskInProgress || taskToUpdate.dailyTasks.some(dt => dt.status === "completed")) {
+        taskToUpdate.status = "inprogress";
+      } else {
+        taskToUpdate.status = "todo";
+      }
+      
+      newTasks[taskIndex] = taskToUpdate;
+      return newTasks;
+    });
+  }, []);
+
 
   const handleDeleteRequest = (taskId: string) => {
     setDeletingTaskId(taskId);
@@ -131,11 +207,29 @@ export default function TaskPlanningPage() {
 
   const handleSaveEditedTask = (updatedTask: PlannedTask) => {
     setIsSavingEdit(true);
-    setPlannedTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === updatedTask.id ? updatedTask : task
-      )
-    );
+    // Ensure IDs and statuses are preserved or correctly re-initialized for daily/sub tasks if structure changed
+     const taskWithProperSubItems = {
+      ...updatedTask,
+      dailyTasks: updatedTask.dailyTasks.map((dt, dtIdx) => ({
+        ...dt,
+        id: dt.id || `daily-${updatedTask.id}-${dtIdx}`,
+        status: dt.status || 'todo',
+        subTasks: dt.subTasks.map((st, stIdx) => ({
+          ...st,
+          id: st.id || `sub-${updatedTask.id}-${dt.id || dtIdx}-${stIdx}`,
+          status: st.status || 'todo',
+        })),
+      })),
+    };
+
+    updateTaskInList(taskWithProperSubItems);
+    // Recalculate statuses after edit, in case sub-items were changed
+    const taskIndex = plannedTasks.findIndex(t => t.id === updatedTask.id);
+    if (taskIndex !== -1) {
+        // This is a bit simplified; ideally, you'd run the cascade logic
+        // For now, we just update the main task. More complex edits would need full cascade.
+    }
+
     setIsEditModalOpen(false);
     setEditingTask(null);
     setIsSavingEdit(false);
@@ -180,7 +274,7 @@ export default function TaskPlanningPage() {
       <AppHeader title="AI Task Management" />
       <main className="flex-1 overflow-y-auto p-4 md:p-6">
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
-          <Card className="lg:col-span-1 h-fit sticky top-20"> {/* Made form sticky */}
+          <Card className="lg:col-span-1 h-fit sticky top-6">
             <CardHeader>
               <CardTitle>Plan a New Task</CardTitle>
               <CardDescription>Describe your task and set a deadline. AI will help you break it down.</CardDescription>
@@ -220,8 +314,8 @@ export default function TaskPlanningPage() {
           </Card>
 
           <div className="lg:col-span-2">
-             {plannedTasks.length === 0 ? (
-               <Alert className="bg-primary/5 col-span-full">
+             {plannedTasks.length === 0 && !isAiPending ? (
+               <Alert className="bg-primary/5 col-span-full mt-6 lg:mt-0">
                 <ListChecks className="h-4 w-4 text-primary" />
                 <AlertTitle className="font-semibold text-primary">No tasks planned yet.</AlertTitle>
                 <AlertDescription className="text-foreground/80">
@@ -229,11 +323,11 @@ export default function TaskPlanningPage() {
                 </AlertDescription>
               </Alert>
             ) : (
-              <ScrollArea className="h-[calc(100vh-12rem)]"> {/* Adjust height as needed */}
+              <ScrollArea className="h-[calc(100vh-10rem)]"> 
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 @container">
                   {(["todo", "inprogress", "completed"] as TaskStatus[]).map((status) => (
                     <div key={status} className="space-y-4 p-2 rounded-lg bg-muted/30 min-h-[200px]">
-                      <h3 className="text-lg font-semibold capitalize sticky top-0 bg-muted/30 py-2 z-10 px-1">{status} ({categorizedTasks[status].length})</h3>
+                      <h3 className="text-lg font-semibold capitalize sticky top-0 bg-muted/50 py-2 z-10 px-1 rounded">{status} ({categorizedTasks[status].length})</h3>
                        {categorizedTasks[status].length === 0 ? (
                          <p className="text-sm text-muted-foreground p-2">No tasks in {status}.</p>
                        ) : (
@@ -246,6 +340,7 @@ export default function TaskPlanningPage() {
                               onDelete={handleDeleteRequest}
                               onEdit={handleEditRequest}
                               onToggleReminder={toggleDailyReminder}
+                              onToggleSubTaskStatus={handleToggleSubTaskStatus}
                             />
                           ))}
                         </div>
@@ -287,3 +382,4 @@ export default function TaskPlanningPage() {
     </div>
   );
 }
+

@@ -1,14 +1,15 @@
 
 "use client";
 
-import type { PlannedTask, TaskStatus } from "@/lib/types";
+import type { PlannedTask, TaskStatus, DailyTask, SubTask } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   CalendarClock,
-  CheckCircle,
   Edit2,
   Trash2,
   PlayCircle,
@@ -19,6 +20,10 @@ import {
   BellOff,
   MoreVertical,
   RefreshCcw,
+  ChevronDown,
+  ChevronRight,
+  Circle, // For todo sub-task
+  MinusCircle, // For in-progress sub-task (optional)
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -28,6 +33,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 interface TaskCardItemProps {
   task: PlannedTask;
@@ -35,9 +41,17 @@ interface TaskCardItemProps {
   onDelete: (taskId: string) => void;
   onEdit: (task: PlannedTask) => void;
   onToggleReminder: (taskId: string) => void;
+  onToggleSubTaskStatus: (taskId: string, dailyTaskIndex: number, subTaskIndex: number) => void;
 }
 
-export function TaskCardItem({ task, onUpdateStatus, onDelete, onEdit, onToggleReminder }: TaskCardItemProps) {
+export function TaskCardItem({ 
+  task, 
+  onUpdateStatus, 
+  onDelete, 
+  onEdit, 
+  onToggleReminder,
+  onToggleSubTaskStatus
+}: TaskCardItemProps) {
   const getStatusBadgeVariant = (status: TaskStatus) => {
     switch (status) {
       case "todo":
@@ -45,9 +59,21 @@ export function TaskCardItem({ task, onUpdateStatus, onDelete, onEdit, onToggleR
       case "inprogress":
         return "default";
       case "completed":
-        return "outline"; // Or a success variant if you add one
+        return "outline"; 
       default:
         return "secondary";
+    }
+  };
+
+  const getSubTaskIcon = (status: TaskStatus) => {
+    switch (status) {
+      case "completed":
+        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      case "inprogress": // Optional: if sub-tasks can be in-progress
+        return <MinusCircle className="h-4 w-4 text-blue-500" />;
+      case "todo":
+      default:
+        return <Circle className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -73,7 +99,7 @@ export function TaskCardItem({ task, onUpdateStatus, onDelete, onEdit, onToggleR
               className="text-xs px-2 py-1 h-auto"
             >
               {task.isDailyReminderSet ? <BellOff className="mr-1 h-3 w-3" /> : <BellRing className="mr-1 h-3 w-3" />}
-              {task.isDailyReminderSet ? "Reminder On" : "Reminder"}
+              <span className="group-data-[collapsible=icon]:hidden">{task.isDailyReminderSet ? "Reminder On" : "Set Reminder"}</span>
             </Button>
              <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -134,23 +160,47 @@ export function TaskCardItem({ task, onUpdateStatus, onDelete, onEdit, onToggleR
         <p className="text-xs text-muted-foreground mb-2 italic">
           Original: {task.originalDescription}
         </p>
-        <h4 className="font-semibold mb-1 text-sm">Daily Breakdown:</h4>
+        <h4 className="font-semibold mb-1 text-sm flex items-center">
+          <ListChecks className="mr-2 h-4 w-4" />Daily Breakdown:
+        </h4>
         {task.dailyTasks && task.dailyTasks.length > 0 ? (
-          <Accordion type="single" collapsible className="w-full">
-            {task.dailyTasks.map((dailyTask, index) => (
-              <AccordionItem value={`day-${task.id}-${index}`} key={index} className="border-b-muted/50">
+          <Accordion type="single" collapsible className="w-full" defaultValue={`day-${task.id}-0`}>
+            {task.dailyTasks.map((dailyTask, dailyIndex) => (
+              <AccordionItem value={`day-${task.id}-${dailyIndex}`} key={dailyTask.id || dailyIndex} className="border-b-muted/50">
                 <AccordionTrigger className="text-xs font-medium hover:no-underline py-1.5 px-1 text-left">
-                  {dailyTask.dayDescription}
+                  <div className="flex items-center justify-between w-full">
+                    <span>{dailyTask.dayDescription}</span>
+                    <Badge variant={getStatusBadgeVariant(dailyTask.status)} size="sm" className="capitalize ml-2 text-xs px-1.5 py-0.5 h-auto">
+                      {dailyTask.status}
+                    </Badge>
+                  </div>
                 </AccordionTrigger>
                 <AccordionContent className="pl-3 pt-1 pb-1 text-xs">
-                  <ul className="list-none space-y-0.5">
-                    {dailyTask.subTasks.map((subTask, subIndex) => (
-                      <li key={subIndex} className="flex items-start">
-                        <CheckCircle className="mr-1.5 mt-0.5 h-3 w-3 text-green-500 shrink-0" />
-                        <span>{subTask}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {dailyTask.subTasks && dailyTask.subTasks.length > 0 ? (
+                    <ul className="list-none space-y-1.5">
+                      {dailyTask.subTasks.map((subTask, subIndex) => (
+                        <li key={subTask.id || subIndex} className="flex items-center">
+                          <Checkbox
+                            id={`subtask-${task.id}-${dailyTask.id}-${subTask.id}`}
+                            checked={subTask.status === "completed"}
+                            onCheckedChange={() => onToggleSubTaskStatus(task.id, dailyIndex, subIndex)}
+                            className="mr-2 h-3.5 w-3.5"
+                          />
+                          <Label 
+                            htmlFor={`subtask-${task.id}-${dailyTask.id}-${subTask.id}`}
+                            className={cn(
+                              "text-xs flex-grow cursor-pointer",
+                              subTask.status === "completed" && "line-through text-muted-foreground"
+                            )}
+                          >
+                            {subTask.description}
+                          </Label>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                     <p className="text-xs text-muted-foreground italic">No sub-tasks for this day.</p>
+                  )}
                 </AccordionContent>
               </AccordionItem>
             ))}
