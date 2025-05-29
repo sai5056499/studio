@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useTransition } from "react";
@@ -12,10 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { aiPoweredTaskPlanning, type AiPoweredTaskPlanningInput } from "@/ai/flows/ai-powered-task-planning";
+import { aiPoweredTaskPlanning, type AiPoweredTaskPlanningInput, type AiPoweredTaskPlanningOutput } from "@/ai/flows/ai-powered-task-planning";
 import type { PlannedTask } from "@/lib/types";
-import { ListChecks, CheckCircle, CalendarClock, Loader2, BellRing, BellOff } from "lucide-react";
+import { ListChecks, CheckCircle, CalendarClock, Loader2, BellRing, BellOff, ChevronRight } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const taskPlanningSchema = z.object({
   taskDescription: z.string().min(10, "Task description must be at least 10 characters."),
@@ -43,7 +45,7 @@ export default function TaskPlanningPage() {
       try {
         const result = await aiPoweredTaskPlanning(data as AiPoweredTaskPlanningInput);
         const newTask: PlannedTask = {
-          ...result,
+          ...(result as AiPoweredTaskPlanningOutput), // Cast to ensure new structure
           id: Date.now().toString(),
           originalDescription: data.taskDescription,
           deadline: data.deadline,
@@ -93,7 +95,7 @@ export default function TaskPlanningPage() {
           <Card className="lg:col-span-1">
             <CardHeader>
               <CardTitle>Plan a New Task</CardTitle>
-              <CardDescription>Describe your task and set a deadline. AI will help you break it down.</CardDescription>
+              <CardDescription>Describe your task and set a deadline. AI will help you break it down into daily sub-tasks.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -164,21 +166,36 @@ export default function TaskPlanningPage() {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm text-muted-foreground mb-2">
+                        <p className="text-sm text-muted-foreground mb-3">
                           Original: {task.originalDescription}
                         </p>
-                        <h4 className="font-semibold mb-1">Steps:</h4>
-                        <ul className="list-disc list-inside space-y-1 text-sm">
-                          {task.steps.map((step, index) => (
-                            <li key={index} className="flex items-start">
-                              <CheckCircle className="mr-2 mt-0.5 h-4 w-4 text-green-500 shrink-0" />
-                              <span>{step}</span>
-                            </li>
-                          ))}
-                        </ul>
+                        <h4 className="font-semibold mb-2 text-md">Daily Breakdown:</h4>
+                        {task.dailyTasks && task.dailyTasks.length > 0 ? (
+                          <Accordion type="single" collapsible className="w-full">
+                            {task.dailyTasks.map((dailyTask, index) => (
+                              <AccordionItem value={`day-${index}`} key={index}>
+                                <AccordionTrigger className="text-sm font-medium hover:no-underline py-2">
+                                  {dailyTask.dayDescription}
+                                </AccordionTrigger>
+                                <AccordionContent className="pl-4 pt-1 pb-2">
+                                  <ul className="list-none space-y-1 text-sm">
+                                    {dailyTask.subTasks.map((subTask, subIndex) => (
+                                      <li key={subIndex} className="flex items-start">
+                                        <CheckCircle className="mr-2 mt-0.5 h-4 w-4 text-green-500 shrink-0" />
+                                        <span>{subTask}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </AccordionContent>
+                              </AccordionItem>
+                            ))}
+                          </Accordion>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No daily steps provided for this task.</p>
+                        )}
                       </CardContent>
                       <CardFooter>
-                        <p className="text-xs text-muted-foreground">Reminder: {task.reminder}</p>
+                        <p className="text-xs text-muted-foreground">Overall Reminder: {task.overallReminder}</p>
                       </CardFooter>
                     </Card>
                   ))}

@@ -1,13 +1,17 @@
+
 "use client";
 
-import type { ChatMessage, PlannedTask } from "@/lib/types";
+import type { ChatMessage, PlannedTask } from "@/lib/types"; // PlannedTask implicitly uses AiPoweredTaskPlanningOutput
+import type { AiPoweredTaskPlanningOutput } from "@/ai/flows/ai-powered-task-planning"; // Explicit import for casting
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, User, AlertTriangle, CheckCircle, Sparkles, ClipboardList } from "lucide-react";
+import { Bot, User, AlertTriangle, CheckCircle, Sparkles, ClipboardList, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
 
 interface ChatMessageCardProps {
   message: ChatMessage;
@@ -73,22 +77,42 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
         }
         return <p>{message.content}</p>;
       case "plan":
-        if (message.data && "taskName" in message.data) {
-          const planData = message.data as PlannedTask; // Assuming it fits PlannedTask structure
+        if (message.data && "taskName" in message.data && "dailyTasks" in message.data) {
+          // Cast to AiPoweredTaskPlanningOutput to ensure we have the new structure
+          const planData = message.data as AiPoweredTaskPlanningOutput;
           return (
             <div>
               <h4 className="font-semibold mb-1">Task Plan: {planData.taskName}</h4>
-              <p className="text-sm italic">Reminder: {planData.reminder}</p>
-              <h5 className="font-medium mt-2 mb-1">Steps:</h5>
-              <ul className="list-disc list-inside text-sm">
-                {planData.steps.map((step, index) => (
-                  <li key={index}>{step}</li>
-                ))}
-              </ul>
+              {planData.overallReminder && <p className="text-sm italic mb-2">Reminder: {planData.overallReminder}</p>}
+              
+              <h5 className="font-medium mt-2 mb-1 text-sm">Daily Breakdown:</h5>
+              {planData.dailyTasks && planData.dailyTasks.length > 0 ? (
+                <Accordion type="single" collapsible className="w-full">
+                  {planData.dailyTasks.map((dailyTask, index) => (
+                    <AccordionItem value={`chat-day-${index}`} key={index} className="border-b-muted/50">
+                      <AccordionTrigger className="text-xs font-medium hover:no-underline py-1.5 px-1 text-left">
+                        {dailyTask.dayDescription}
+                      </AccordionTrigger>
+                      <AccordionContent className="pl-3 pt-1 pb-1 text-xs">
+                        <ul className="list-none space-y-0.5">
+                          {dailyTask.subTasks.map((subTask, subIndex) => (
+                            <li key={subIndex} className="flex items-start">
+                              <CheckCircle className="mr-1.5 mt-0.5 h-3 w-3 text-green-400 shrink-0" />
+                              <span>{subTask}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              ) : (
+                <p className="text-xs text-muted-foreground">No daily steps provided.</p>
+              )}
             </div>
           );
         }
-        return <p>{message.content}</p>;
+        return <p>{message.content}</p>; // Fallback if data structure is not as expected
       default:
         return <p className="whitespace-pre-wrap">{message.content}</p>;
     }
@@ -116,7 +140,7 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
         <div className={cn(
           "p-3 rounded-lg",
           isUser ? "bg-primary text-primary-foreground" : (isError ? "bg-destructive text-destructive-foreground" : "bg-card text-card-foreground"),
-          "shadow-md"
+          "shadow-md text-sm" // Ensure consistent text size for chat bubbles
         )}>
           {renderContent()}
         </div>
