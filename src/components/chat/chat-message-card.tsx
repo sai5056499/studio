@@ -1,12 +1,12 @@
 
 "use client";
 
-import type { ChatMessage, PlannedTask } from "@/lib/types"; // PlannedTask implicitly uses AiPoweredTaskPlanningOutput
-import type { AiPoweredTaskPlanningOutput } from "@/ai/flows/ai-powered-task-planning"; // Explicit import for casting
+import type { ChatMessage } from "@/lib/types"; 
+import type { AiPoweredTaskPlanningOutput } from "@/ai/flows/ai-powered-task-planning"; 
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, User, AlertTriangle, CheckCircle, Sparkles, ClipboardList, ChevronRight } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"; // Removed AvatarImage as it's not used
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"; // Card related imports seem unused here, but might be for future if messages become cards themselves.
+import { Bot, User, AlertTriangle, CheckCircle, Sparkles } from "lucide-react"; // Removed ClipboardList, ChevronRight
 import { format } from "date-fns";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,7 @@ interface ChatMessageCardProps {
 export function ChatMessageCard({ message }: ChatMessageCardProps) {
   const { toast } = useToast();
   const isUser = message.role === "user";
-  const isSystem = message.role === "system"; // e.g. for page content input
+  const isSystem = message.role === "system"; 
   const isError = message.type === "error";
 
   const copyToClipboard = (text: string, type: string) => {
@@ -78,18 +78,18 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
         return <p>{message.content}</p>;
       case "plan":
         if (message.data && "taskName" in message.data && "dailyTasks" in message.data) {
-          // Cast to AiPoweredTaskPlanningOutput to ensure we have the new structure
-          const planData = message.data as AiPoweredTaskPlanningOutput;
+          const planData = message.data as AiPoweredTaskPlanningOutput; // Uses the imported type
           return (
             <div>
-              <h4 className="font-semibold mb-1">Task Plan: {planData.taskName}</h4>
+              <h4 className="font-semibold mb-1">Task Plan Generated: {planData.taskName}</h4>
               {planData.overallReminder && <p className="text-sm italic mb-2">Reminder: {planData.overallReminder}</p>}
+              <p className="text-sm mb-2">Status: {planData.status || "Todo (Default)"}</p> {/* Display status */}
               
               <h5 className="font-medium mt-2 mb-1 text-sm">Daily Breakdown:</h5>
               {planData.dailyTasks && planData.dailyTasks.length > 0 ? (
                 <Accordion type="single" collapsible className="w-full">
                   {planData.dailyTasks.map((dailyTask, index) => (
-                    <AccordionItem value={`chat-day-${index}`} key={index} className="border-b-muted/50">
+                    <AccordionItem value={`chat-day-${message.id}-${index}`} key={index} className="border-b-muted/50">
                       <AccordionTrigger className="text-xs font-medium hover:no-underline py-1.5 px-1 text-left">
                         {dailyTask.dayDescription}
                       </AccordionTrigger>
@@ -109,10 +109,11 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
               ) : (
                 <p className="text-xs text-muted-foreground">No daily steps provided.</p>
               )}
+               <p className="text-xs mt-2 text-muted-foreground">You can view and manage this task in the "Task Planning" page.</p>
             </div>
           );
         }
-        return <p>{message.content}</p>; // Fallback if data structure is not as expected
+        return <p>{message.content}</p>; 
       default:
         return <p className="whitespace-pre-wrap">{message.content}</p>;
     }
@@ -140,7 +141,7 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
         <div className={cn(
           "p-3 rounded-lg",
           isUser ? "bg-primary text-primary-foreground" : (isError ? "bg-destructive text-destructive-foreground" : "bg-card text-card-foreground"),
-          "shadow-md text-sm" // Ensure consistent text size for chat bubbles
+          "shadow-md text-sm" 
         )}>
           {renderContent()}
         </div>
@@ -148,7 +149,7 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
             "text-xs text-muted-foreground mt-1",
             isUser ? "text-right pr-1" : "text-left pl-1"
           )}>
-          {format(message.timestamp, "PPpp")}
+          {format(new Date(message.timestamp), "PPpp")} {/* Ensure timestamp is a Date object */}
         </p>
       </div>
       {isUser && (

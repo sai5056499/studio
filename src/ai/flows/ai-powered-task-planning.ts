@@ -31,6 +31,7 @@ const AiPoweredTaskPlanningOutputSchema = z.object({
   taskName: z.string().describe('The name of the overall task.'),
   dailyTasks: z.array(DailyTaskSchema).describe('A list of daily tasks, each with its own sub-tasks, outlining the plan to meet the deadline.'),
   overallReminder: z.string().describe('A general reminder or motivational tip for the entire task project.'),
+  status: z.enum(["todo", "inprogress", "completed"]).optional().describe('The current status of the task (optional, will default to "todo" on client-side).')
 });
 
 export type AiPoweredTaskPlanningOutput = z.infer<typeof AiPoweredTaskPlanningOutputSchema>;
@@ -51,6 +52,7 @@ const prompt = ai.definePrompt({
   Based on the task description and deadline, please provide a concise task name.
   Then, break down the main task into a schedule of daily tasks. For each day, provide a brief description for that day's focus or theme (e.g., "Day 1: Research & Information Gathering", "Tuesday: Draft initial sections") and then list specific, actionable sub-tasks to be completed for that day.
   Finally, provide an overall reminder or a motivational tip for the entire project.
+  Do not set the 'status' field; it will be handled by the application.
   Ensure your output is valid JSON that strictly conforms to the provided output schema.
   The goal is to create a clear, actionable daily plan to achieve the task by its deadline.
   If the deadline is short (e.g. "today", "tomorrow"), the daily tasks might just be for one or two days.
