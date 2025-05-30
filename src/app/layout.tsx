@@ -32,7 +32,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ChatProvider>
-          <SidebarProvider defaultOpen={true}>
+          <SidebarProvider defaultOpen={false}> {/* Changed defaultOpen to false */}
             <AppSidebar />
             <SidebarRail />
             <SidebarInset>
