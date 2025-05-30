@@ -36,8 +36,8 @@ export default function ChatPdfPage() {
   
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [currentQuestion, setCurrentQuestion] = React.useState<string>("");
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [isImproving, setIsImproving] = React.useState<boolean>(false);
+  const [isLoading, setIsLoading] = React.useState<boolean>(false); // For chat questions
+  const [isImproving, setIsImproving] = React.useState<boolean>(false); // For document improvement
   
   const { toast } = useToast();
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
@@ -45,8 +45,6 @@ export default function ChatPdfPage() {
 
   React.useEffect(() => {
     try {
-      // Use `new URL` with `import.meta.url` for robust worker path resolution with bundlers.
-      // The path should point to the worker file within node_modules.
       const workerUrl = new URL('pdfjs-dist/legacy/build/pdf.worker.mjs', import.meta.url);
       GlobalWorkerOptions.workerSrc = workerUrl.toString();
     } catch (error) {
@@ -151,7 +149,7 @@ export default function ChatPdfPage() {
     setMessages([{
       id: `assistant-greeting-${Date.now()}`,
       role: "assistant",
-      content: "Document content loaded. How can I help you with it? Ask questions or request improvements.",
+      content: "Document content loaded. You can edit the text below, ask questions, or request improvements.",
       timestamp: new Date(),
       type: "text",
     }]);
@@ -221,7 +219,7 @@ export default function ChatPdfPage() {
 
     try {
       const input: ChatWithPdfInput = {
-        documentContent: currentDocumentText,
+        documentContent: currentDocumentText, // Use the potentially edited text
         question: questionToAsk,
       };
       const result = await chatWithPdf(input);
@@ -273,7 +271,7 @@ export default function ChatPdfPage() {
 
     try {
       const input: ImprovePageContentInput = {
-        pageContent: currentDocumentText,
+        pageContent: currentDocumentText, // Use the potentially edited text
       };
       const result: ImprovePageContentOutput = await improvePageContent(input);
       
@@ -321,11 +319,11 @@ export default function ChatPdfPage() {
         <Card className="w-full max-w-3xl shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center text-2xl">
-              <FileText className="mr-3 h-7 w-7 text-primary" /> Chat & Improve Your Document
+              <FileText className="mr-3 h-7 w-7 text-primary" /> Chat, Edit & Improve Your Document
             </CardTitle>
             <CardDescription>
               {isDocumentLoaded 
-                ? "Ask questions about the loaded document or request AI-powered improvements to its text." 
+                ? "Edit the document text below, ask questions, or request AI-powered improvements." 
                 : "Upload a PDF or paste its text content below to start."}
             </CardDescription>
           </CardHeader>
@@ -373,7 +371,7 @@ export default function ChatPdfPage() {
                     onChange={(e) => { setDocumentContent(e.target.value); setSelectedFile(null); setFileName(null);}}
                     rows={10}
                     className="mt-1"
-                    disabled={!!selectedFile}
+                    disabled={!!selectedFile || isParsingPdf}
                   />
                 </div>
                 <Button 
@@ -386,17 +384,34 @@ export default function ChatPdfPage() {
                 </Button>
               </div>
             ) : (
-              <div className="flex flex-col h-[calc(100vh-20rem)] sm:h-[calc(100vh-18rem)]">
-                <div className="flex justify-between items-center mb-3 p-3 bg-muted/50 rounded-md gap-2">
+              <div className="space-y-4"> {/* Main container for loaded state */}
+                <div className="flex justify-between items-center p-3 bg-muted/50 rounded-md gap-2">
                   <p className="text-sm text-muted-foreground font-medium">
-                    Document loaded. You are now chatting with the AI assistant.
+                    Document loaded. Edit the text below or chat with the AI.
                   </p>
                   <Button variant="outline" size="sm" onClick={handleLoadNewDocument} disabled={isLoading || isImproving || isParsingPdf}>
                     <Trash2 className="mr-2 h-4 w-4" /> Load New
                   </Button>
                 </div>
 
-                <ScrollArea className="flex-1 p-0 pr-1 mb-4" ref={scrollAreaRef}>
+                <div> {/* Container for editable text area */}
+                  <Label htmlFor="editable-document-content" className="font-semibold">Editable Document Content:</Label>
+                  <Textarea
+                    id="editable-document-content"
+                    value={currentDocumentText}
+                    onChange={(e) => setCurrentDocumentText(e.target.value)}
+                    rows={12} 
+                    className="mt-1 w-full shadow-inner"
+                    disabled={isLoading || isImproving || isParsingPdf}
+                    placeholder="The text content of your document will appear here for editing..."
+                  />
+                   <p className="text-xs text-muted-foreground mt-1">
+                    You can directly edit the document text here. Changes will be used for subsequent AI questions or improvement requests.
+                  </p>
+                </div>
+
+                {/* Chat Messages Section - adjusted height */}
+                <ScrollArea className="h-[300px] w-full rounded-md border p-3 shadow-inner bg-background" ref={scrollAreaRef}>
                   <div className="space-y-4">
                     {messages.map((msg) => (
                       <ChatMessageCard key={msg.id} message={msg} />
@@ -453,3 +468,6 @@ export default function ChatPdfPage() {
     </div>
   );
 }
+
+
+    
