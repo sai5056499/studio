@@ -15,13 +15,14 @@ import {
 import { AppLogo } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { MessageSquare, ListChecks, History, LogOut, Settings, PenSquare, Languages, ScanText } from "lucide-react";
+import { MessageSquare, ListChecks, History, LogOut, Settings, PenSquare, Languages, ScanText, FileQuestion } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Chat", icon: MessageSquare },
   { href: "/writer", label: "AI Writer", icon: PenSquare },
   { href: "/translate", label: "Translate", icon: Languages },
   { href: "/ocr", label: "OCR", icon: ScanText },
+  { href: "/chat-pdf", label: "Chat PDF", icon: FileQuestion },
   { href: "/planning", label: "Task Planning", icon: ListChecks },
   { href: "/history", label: "Chat History", icon: History },
 ];
