@@ -11,9 +11,10 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { chatWithPdf, type ChatWithPdfInput } from "@/ai/flows/chat-with-pdf-flow";
-import { FileText, MessageSquare, Loader2, SendHorizonal, FilePlus2, Trash2 } from "lucide-react";
+import { improvePageContent, type ImprovePageContentInput, type ImprovePageContentOutput } from "@/ai/flows/improve-page-content";
+import { FileText, MessageSquare, Loader2, SendHorizonal, FilePlus2, Trash2, Wand2 } from "lucide-react";
 import type { ChatMessage } from "@/lib/types"; 
-import { ChatMessageCard } from "@/components/chat/chat-message-card"; // Reusing for consistent display
+import { ChatMessageCard } from "@/components/chat/chat-message-card";
 
 export default function ChatPdfPage() {
   const [documentContent, setDocumentContent] = React.useState<string>("");
@@ -23,6 +24,7 @@ export default function ChatPdfPage() {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [currentQuestion, setCurrentQuestion] = React.useState<string>("");
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [isImproving, setIsImproving] = React.useState<boolean>(false);
   
   const { toast } = useToast();
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
@@ -47,8 +49,8 @@ export default function ChatPdfPage() {
     }
     setCurrentDocumentText(documentContent);
     setIsDocumentLoaded(true);
-    setMessages([]); // Clear previous chat messages
-    toast({ title: "Document Loaded", description: "You can now ask questions about the document." });
+    setMessages([]); 
+    toast({ title: "Document Loaded", description: "You can now ask questions or request improvements for the document." });
   };
 
   const handleLoadNewDocument = () => {
@@ -61,28 +63,29 @@ export default function ChatPdfPage() {
 
   const handleAskQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentQuestion.trim() || !isDocumentLoaded) return;
+    if (!currentQuestion.trim() || !isDocumentLoaded || isLoading || isImproving) return;
 
     const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
+      id: `user-question-${Date.now()}`,
       role: "user",
       content: currentQuestion,
       timestamp: new Date(),
       type: "text",
     };
     setMessages((prev) => [...prev, userMessage]);
+    const questionToAsk = currentQuestion;
     setCurrentQuestion("");
     setIsLoading(true);
 
     try {
       const input: ChatWithPdfInput = {
         documentContent: currentDocumentText,
-        question: userMessage.content,
+        question: questionToAsk,
       };
       const result = await chatWithPdf(input);
       
       const assistantMessage: ChatMessage = {
-        id: `assistant-${Date.now()}`,
+        id: `assistant-answer-${Date.now()}`,
         role: "assistant",
         content: result.answer,
         timestamp: new Date(),
@@ -95,7 +98,7 @@ export default function ChatPdfPage() {
       console.error("Error chatting with PDF:", error);
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
       const errorResponseMessage: ChatMessage = {
-        id: `error-${Date.now()}`,
+        id: `error-chat-${Date.now()}`,
         role: "assistant",
         content: `Sorry, I couldn't process your question: ${errorMessage}`,
         timestamp: new Date(),
@@ -104,7 +107,7 @@ export default function ChatPdfPage() {
       };
       setMessages((prev) => [...prev, errorResponseMessage]);
       toast({
-        title: "Error",
+        title: "Error Asking Question",
         description: errorMessage,
         variant: "destructive",
       });
@@ -113,6 +116,62 @@ export default function ChatPdfPage() {
     }
   };
 
+  const handleImproveDocument = async () => {
+    if (!currentDocumentText || !isDocumentLoaded || isLoading || isImproving) return;
+
+    const userMessage: ChatMessage = {
+      id: `user-improve-${Date.now()}`,
+      role: "user",
+      content: "Please improve the loaded document text.",
+      timestamp: new Date(),
+      type: "text",
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setIsImproving(true);
+
+    try {
+      const input: ImprovePageContentInput = {
+        pageContent: currentDocumentText,
+      };
+      const result: ImprovePageContentOutput = await improvePageContent(input);
+      
+      const assistantMessage: ChatMessage = {
+        id: `assistant-improvement-${Date.now()}`,
+        role: "assistant",
+        content: "Here are the suggested improvements for your document:", // Placeholder, ChatMessageCard handles actual display
+        timestamp: new Date(),
+        type: "improvement", 
+        data: result 
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+      toast({
+        title: "Document Improvement Suggested",
+        description: "The AI has provided suggestions for your document's text.",
+      });
+
+    } catch (error) {
+      console.error("Error improving document:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+      const errorResponseMessage: ChatMessage = {
+        id: `error-improve-${Date.now()}`,
+        role: "assistant",
+        content: `Sorry, I couldn't improve the document: ${errorMessage}`,
+        timestamp: new Date(),
+        type: "error",
+        data: { error: errorMessage },
+      };
+      setMessages((prev) => [...prev, errorResponseMessage]);
+      toast({
+        title: "Error Improving Document",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsImproving(false);
+    }
+  };
+
+
   return (
     <div className="flex h-full flex-col">
       <AppHeader title="Chat with PDF" />
@@ -120,11 +179,11 @@ export default function ChatPdfPage() {
         <Card className="w-full max-w-3xl shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center text-2xl">
-              <FileText className="mr-3 h-7 w-7 text-primary" /> Chat with Your Document
+              <FileText className="mr-3 h-7 w-7 text-primary" /> Chat & Improve Your Document
             </CardTitle>
             <CardDescription>
               {isDocumentLoaded 
-                ? "Ask questions about the loaded document below." 
+                ? "Ask questions about the loaded document or request AI-powered improvements to its text." 
                 : "Paste the text content from your PDF document below to start."}
             </CardDescription>
           </CardHeader>
@@ -147,13 +206,13 @@ export default function ChatPdfPage() {
                 </Button>
               </div>
             ) : (
-              <div className="flex flex-col h-[calc(100vh-22rem)] sm:h-[calc(100vh-20rem)]"> {/* Adjusted height */}
-                <div className="flex justify-between items-center mb-3 p-3 bg-muted/50 rounded-md">
+              <div className="flex flex-col h-[calc(100vh-22rem)] sm:h-[calc(100vh-20rem)]">
+                <div className="flex justify-between items-center mb-3 p-3 bg-muted/50 rounded-md gap-2">
                   <p className="text-sm text-muted-foreground font-medium">
-                    Document loaded. Ask your questions below.
+                    Document loaded. Ask questions or improve its content.
                   </p>
-                  <Button variant="outline" size="sm" onClick={handleLoadNewDocument}>
-                    <Trash2 className="mr-2 h-4 w-4" /> Load New Document
+                  <Button variant="outline" size="sm" onClick={handleLoadNewDocument} disabled={isLoading || isImproving}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Load New
                   </Button>
                 </div>
 
@@ -162,10 +221,10 @@ export default function ChatPdfPage() {
                     {messages.map((msg) => (
                       <ChatMessageCard key={msg.id} message={msg} />
                     ))}
-                     {isLoading && messages.length > 0 && messages[messages.length -1].role === 'user' && (
+                     {(isLoading || isImproving) && messages.length > 0 && messages[messages.length -1].role === 'user' && (
                        <div className="flex items-start gap-3 p-4 rounded-lg shadow-sm bg-secondary/20">
                           <Loader2 className="h-6 w-6 text-primary animate-spin" />
-                          <p className="text-sm text-muted-foreground">AI is thinking...</p>
+                          <p className="text-sm text-muted-foreground">AI is working on your request...</p>
                        </div>
                     )}
                   </div>
@@ -178,10 +237,20 @@ export default function ChatPdfPage() {
                     value={currentQuestion}
                     onChange={(e) => setCurrentQuestion(e.target.value)}
                     className="flex-1"
-                    disabled={isLoading}
+                    disabled={isLoading || isImproving}
                   />
-                  <Button type="submit" size="icon" disabled={isLoading || !currentQuestion.trim()} aria-label="Ask question">
+                  <Button type="submit" size="icon" disabled={isLoading || isImproving || !currentQuestion.trim()} aria-label="Ask question">
                     {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <SendHorizonal className="h-5 w-5" />}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={handleImproveDocument} 
+                    disabled={isLoading || isImproving}
+                    aria-label="Improve document text"
+                  >
+                    {isImproving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Wand2 className="h-5 w-5" />}
                   </Button>
                 </form>
               </div>
@@ -190,7 +259,7 @@ export default function ChatPdfPage() {
           {!isDocumentLoaded && (
             <CardFooter>
                 <p className="text-xs text-muted-foreground">
-                    Note: This tool works with pasted text content. For complex PDFs with many images or intricate layouts, ensure you copy selectable text for best results.
+                    Note: This tool works with pasted text content. For complex PDFs with many images or intricate layouts, ensure you copy selectable text for best results. The AI will help improve the text content you provide.
                 </p>
             </CardFooter>
           )}
@@ -199,3 +268,5 @@ export default function ChatPdfPage() {
     </div>
   );
 }
+
+    
