@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -60,14 +61,19 @@ export function AppSidebar() {
       <SidebarFooter className="p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton 
-              tooltip={{ children: "Settings", side: "right" }}
-              className="justify-start"
-              // onClick={() => { /* TODO: Implement settings */ }}
-            >
-              <Settings className="h-5 w-5" />
-              <span>Settings</span>
-            </SidebarMenuButton>
+            <Link href="/settings" legacyBehavior passHref>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname === "/settings"}
+                tooltip={{ children: "Settings", side: "right" }}
+                className="justify-start"
+              >
+                <a>
+                  <Settings className="h-5 w-5" />
+                  <span>Settings</span>
+                </a>
+              </SidebarMenuButton>
+            </Link>
           </SidebarMenuItem>
           <SidebarMenuItem>
              <SidebarMenuButton 
