@@ -52,7 +52,7 @@ export function AppSidebar() {
                   className="justify-start"
                 >
                   <a>
-                    <item.icon className="h-4 w-4" /> {/* Icon size changed to h-4 w-4 */}
+                    <item.icon className="h-5 w-5" /> {/* Icon size changed to h-5 w-5 */}
                     <span>{item.label}</span>
                   </a>
                 </SidebarMenuButton>
@@ -73,7 +73,7 @@ export function AppSidebar() {
                 className="justify-start"
               >
                 <a>
-                  <Settings className="h-4 w-4" /> {/* Icon size changed to h-4 w-4 */}
+                  <Settings className="h-5 w-5" /> {/* Icon size changed to h-5 w-5 */}
                   <span>Settings</span>
                 </a>
               </SidebarMenuButton>
@@ -85,7 +85,7 @@ export function AppSidebar() {
               className="justify-start"
               // onClick={() => { /* TODO: Implement logout */ }}
             >
-              <LogOut className="h-4 w-4" /> {/* Icon size changed to h-4 w-4 */}
+              <LogOut className="h-5 w-5" /> {/* Icon size changed to h-5 w-5 */}
               <span>Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
