@@ -1,7 +1,9 @@
+
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from "react";
 import type { FormEvent } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,9 +13,18 @@ import { useChat } from "@/contexts/chat-context";
 import { summarizePageContent, type SummarizePageContentInput } from "@/ai/flows/summarize-page-content";
 import { improvePageContent, type ImprovePageContentInput } from "@/ai/flows/improve-page-content";
 import { useToast } from "@/hooks/use-toast";
-import { SendHorizonal, FileText, Edit3, Loader2, Trash2, Sparkles } from "lucide-react";
-import type { PageContentSource, ChatMessage } from "@/lib/types";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { 
+  SendHorizonal, 
+  FileText, 
+  Edit3, 
+  Loader2, 
+  Trash2, 
+  Clipboard, 
+  Wand2, 
+  ListChecks, 
+  History 
+} from "lucide-react";
+import type { ChatMessage } from "@/lib/types";
 
 export function ChatPanel() {
   const { messages, addMessage, addMessages, clearChat, isLoading, setIsLoading } = useChat();
@@ -127,15 +138,8 @@ export function ChatPanel() {
     };
     addMessage(newUserMessage);
     
-    // Basic AI response simulation if no specific AI flow is triggered
-    // For a real chat, you'd integrate with a conversational AI flow here.
-    // This example focuses on specific GenAI flows.
-    // For now, we'll just add a placeholder response.
-    // A more complex app would use a general purpose chat AI.
-    // The current GenAI flows are specific, not for general chat.
     startTransition(async () => {
       setIsLoading(true);
-      // Simulate AI thinking time
       await new Promise(resolve => setTimeout(resolve, 1000));
       addMessage({
         id: (Date.now() + 1).toString(),
@@ -183,20 +187,70 @@ export function ChatPanel() {
       </div>
 
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-        <div className="space-y-4">
-          {messages.length === 0 && (
-             <Alert className="bg-primary/5">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <AlertTitle className="font-semibold text-primary">Welcome to Content Ally!</AlertTitle>
-              <AlertDescription className="text-foreground/80">
-                You can chat with me, analyze webpage content for summaries, or get suggestions for content improvement using the buttons above. Head over to Task Planning to create and manage tasks.
-              </AlertDescription>
-            </Alert>
-          )}
-          {messages.map((msg) => (
-            <ChatMessageCard key={msg.id} message={msg} />
-          ))}
-        </div>
+        {messages.length === 0 && !isLoading && !isPending ? (
+          <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <div className="mb-10">
+              <h2 className="text-4xl font-bold tracking-tight mb-2 text-primary">Hi,</h2>
+              <p className="text-2xl text-foreground/80">How can I assist you today?</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl w-full">
+              <PageContentModal
+                triggerButton={
+                  <Button variant="outline" className="w-full justify-start p-5 text-left h-auto rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                    <Clipboard className="mr-3 h-6 w-6 text-primary/80" />
+                    <div>
+                      <span className="font-semibold text-base text-foreground">Analyze Page Content</span>
+                      <p className="text-xs text-muted-foreground">Summarize or get insights from a webpage.</p>
+                    </div>
+                  </Button>
+                }
+                title="Analyze Page Content"
+                description="Paste the content of the webpage you want to analyze or summarize."
+                actionButtonText="Summarize Content"
+                onConfirm={handleSummarize}
+              />
+              <PageContentModal
+                triggerButton={
+                  <Button variant="outline" className="w-full justify-start p-5 text-left h-auto rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                    <Wand2 className="mr-3 h-6 w-6 text-primary/80" />
+                    <div>
+                      <span className="font-semibold text-base text-foreground">Improve Text</span>
+                      <p className="text-xs text-muted-foreground">Get AI suggestions for grammar and style.</p>
+                    </div>
+                  </Button>
+                }
+                title="Improve Page Content"
+                description="Paste the content you want AI-powered improvement suggestions for."
+                actionButtonText="Get Suggestions"
+                onConfirm={handleImproveContent}
+              />
+              <Button asChild variant="outline" className="w-full justify-start p-5 text-left h-auto rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                <Link href="/planning">
+                  <ListChecks className="mr-3 h-6 w-6 text-primary/80" />
+                  <div>
+                    <span className="font-semibold text-base text-foreground">Plan a New Task</span>
+                    <p className="text-xs text-muted-foreground">Let AI help you break down tasks.</p>
+                  </div>
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full justify-start p-5 text-left h-auto rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                <Link href="/history">
+                  <History className="mr-3 h-6 w-6 text-primary/80" />
+                  <div>
+                    <span className="font-semibold text-base text-foreground">View Chat History</span>
+                    <p className="text-xs text-muted-foreground">Review your past conversations.</p>
+                  </div>
+                </Link>
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {messages.map((msg) => (
+              <ChatMessageCard key={msg.id} message={msg} />
+            ))}
+          </div>
+        )}
       </ScrollArea>
 
       <div className="border-t p-4">
@@ -217,3 +271,4 @@ export function ChatPanel() {
     </div>
   );
 }
+
