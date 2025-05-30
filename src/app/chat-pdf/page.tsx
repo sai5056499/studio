@@ -12,22 +12,43 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { chatWithPdf, type ChatWithPdfInput } from "@/ai/flows/chat-with-pdf-flow";
 import { improvePageContent, type ImprovePageContentInput, type ImprovePageContentOutput } from "@/ai/flows/improve-page-content";
-import { FileText, Loader2, SendHorizonal, FilePlus2, Trash2, Wand2 } from "lucide-react";
+import { FileText, Loader2, SendHorizonal, FilePlus2, Trash2, Wand2, UploadCloud, FileUp } from "lucide-react";
 import type { ChatMessage } from "@/lib/types"; 
 import { ChatMessageCard } from "@/components/chat/chat-message-card";
 
+// Import pdfjs-dist
+import { GlobalWorkerOptions, getDocument, type PDFDocumentProxy } from 'pdfjs-dist';
+// The worker is imported as a module and its URL is set.
+// This is crucial for pdf.js to work correctly with bundlers like Webpack/Turbopack.
+import * as pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs';
+
+
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
 export default function ChatPdfPage() {
-  const [documentContent, setDocumentContent] = React.useState<string>("");
+  const [documentContent, setDocumentContent] = React.useState<string>(""); // For pasted text
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const [fileName, setFileName] = React.useState<string | null>(null);
+  const [isParsingPdf, setIsParsingPdf] = React.useState<boolean>(false);
+
   const [currentDocumentText, setCurrentDocumentText] = React.useState<string>("");
   const [isDocumentLoaded, setIsDocumentLoaded] = React.useState<boolean>(false);
   
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [currentQuestion, setCurrentQuestion] = React.useState<string>("");
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [isLoading, setIsLoading] = React.useState<boolean>(false); // For AI calls
   const [isImproving, setIsImproving] = React.useState<boolean>(false);
   
   const { toast } = useToast();
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    // Set the worker source for pdf.js. This needs to be done once.
+    // The `pdfjsWorker` is the imported module.
+    GlobalWorkerOptions.workerSrc = pdfjsWorker;
+  }, []);
 
   React.useEffect(() => {
     if (scrollAreaRef.current) {
@@ -38,19 +59,86 @@ export default function ChatPdfPage() {
     }
   }, [messages]);
 
-  const handleLoadDocument = () => {
-    if (!documentContent.trim()) {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type !== "application/pdf") {
+        toast({
+          title: "Invalid File Type",
+          description: "Please upload a PDF file.",
+          variant: "destructive",
+        });
+        setSelectedFile(null);
+        setFileName(null);
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        toast({
+          title: "File Too Large",
+          description: `Please upload a PDF smaller than ${MAX_FILE_SIZE_MB}MB.`,
+          variant: "destructive",
+        });
+        setSelectedFile(null);
+        setFileName(null);
+        return;
+      }
+      setSelectedFile(file);
+      setFileName(file.name);
+      setDocumentContent(""); // Clear pasted text if a file is chosen
+    }
+  };
+
+  const extractTextFromPdf = async (file: File): Promise<string> => {
+    setIsParsingPdf(true);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf: PDFDocumentProxy = await getDocument({ data: arrayBuffer }).promise;
+      let fullText = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        fullText += textContent.items.map((item: any) => item.str).join(" ") + "\n";
+      }
+      toast({ title: "PDF Processed", description: `Extracted text from ${file.name}.` });
+      return fullText;
+    } catch (error) {
+      console.error("Error parsing PDF:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error parsing PDF.";
+      toast({
+        title: "PDF Parsing Failed",
+        description: `Could not extract text from the PDF. ${errorMessage}`,
+        variant: "destructive",
+      });
+      return "";
+    } finally {
+      setIsParsingPdf(false);
+    }
+  };
+
+  const handleLoadDocument = async () => {
+    let textToLoad = "";
+    if (selectedFile) {
+      textToLoad = await extractTextFromPdf(selectedFile);
+    } else if (documentContent.trim()) {
+      textToLoad = documentContent;
+    } else {
       toast({
         title: "No Content Provided",
-        description: "Please paste the text content from your PDF.",
+        description: "Please upload a PDF file or paste its text content.",
         variant: "destructive",
       });
       return;
     }
-    setCurrentDocumentText(documentContent);
+
+    if (!textToLoad.trim()) {
+      if (selectedFile) { // If file was selected but parsing failed/yielded no text
+         toast({ title: "No Text Extracted", description: "No text could be extracted from the selected PDF or it was empty.", variant: "destructive" });
+      }
+      return; // Don't proceed if no text
+    }
+
+    setCurrentDocumentText(textToLoad);
     setIsDocumentLoaded(true);
-    setMessages([]); 
-    // Add an initial assistant message
     setMessages([{
       id: `assistant-greeting-${Date.now()}`,
       role: "assistant",
@@ -58,20 +146,58 @@ export default function ChatPdfPage() {
       timestamp: new Date(),
       type: "text",
     }]);
-    toast({ title: "Document Loaded", description: "You can now ask questions or request improvements for the document." });
+    toast({ title: "Document Loaded", description: "You can now interact with the document's content." });
   };
+  
+  const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.classList.remove("border-primary", "bg-primary/10");
+    const file = event.dataTransfer.files?.[0];
+    if (file) {
+      if (file.type !== "application/pdf") {
+        toast({ title: "Invalid File Type", description: "Please drop a PDF file.", variant: "destructive" });
+        return;
+      }
+       if (file.size > MAX_FILE_SIZE_BYTES) {
+        toast({ title: "File Too Large", description: `Please upload a PDF smaller than ${MAX_FILE_SIZE_MB}MB.`, variant: "destructive" });
+        return;
+      }
+      setSelectedFile(file);
+      setFileName(file.name);
+      setDocumentContent(""); // Clear pasted text
+      // Optionally auto-load: await handleLoadDocument();
+      toast({title: "PDF Dropped", description: `${file.name} is ready. Click "Load Document Content".`})
+    }
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.classList.add("border-primary", "bg-primary/10");
+  };
+
+  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.classList.remove("border-primary", "bg-primary/10");
+  };
+
 
   const handleLoadNewDocument = () => {
     setIsDocumentLoaded(false);
     setDocumentContent("");
     setCurrentDocumentText("");
+    setSelectedFile(null);
+    setFileName(null);
+    if(fileInputRef.current) fileInputRef.current.value = "";
     setMessages([]);
     setCurrentQuestion("");
   };
 
   const handleAskQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentQuestion.trim() || !isDocumentLoaded || isLoading || isImproving) return;
+    if (!currentQuestion.trim() || !isDocumentLoaded || isLoading || isImproving || isParsingPdf) return;
 
     const userMessage: ChatMessage = {
       id: `user-question-${Date.now()}`,
@@ -125,7 +251,7 @@ export default function ChatPdfPage() {
   };
 
   const handleImproveDocument = async () => {
-    if (!currentDocumentText || !isDocumentLoaded || isLoading || isImproving) return;
+    if (!currentDocumentText || !isDocumentLoaded || isLoading || isImproving || isParsingPdf) return;
 
     const userMessage: ChatMessage = {
       id: `user-improve-${Date.now()}`,
@@ -192,25 +318,63 @@ export default function ChatPdfPage() {
             <CardDescription>
               {isDocumentLoaded 
                 ? "Ask questions about the loaded document or request AI-powered improvements to its text." 
-                : "Paste the text content from your PDF document below to start."}
+                : "Upload a PDF or paste its text content below to start."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {!isDocumentLoaded ? (
-              <div className="space-y-4">
+              <div className="space-y-6">
+                <div 
+                  className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-md cursor-pointer transition-colors hover:border-primary hover:bg-primary/5"
+                  onClick={() => fileInputRef.current?.click()}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                >
+                  <UploadCloud className="h-12 w-12 text-muted-foreground mb-3" />
+                  <p className="text-center text-muted-foreground">
+                    {fileName ? `Selected: ${fileName}` : "Click or drag & drop a PDF file here"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Max size: {MAX_FILE_SIZE_MB}MB</p>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="application/pdf"
+                    className="hidden"
+                  />
+                </div>
+                 {fileName && (
+                  <div className="text-center">
+                    <Button variant="link" size="sm" onClick={() => {setSelectedFile(null); setFileName(null); if(fileInputRef.current) fileInputRef.current.value = "";}}>Clear selected file</Button>
+                  </div>
+                )}
+
+                <div className="relative flex items-center">
+                  <div className="flex-grow border-t border-muted"></div>
+                  <span className="mx-4 text-sm text-muted-foreground">OR</span>
+                  <div className="flex-grow border-t border-muted"></div>
+                </div>
+
                 <div>
                   <Label htmlFor="pdf-content">Paste PDF Text Content Here</Label>
                   <Textarea
                     id="pdf-content"
                     placeholder="Copy and paste the full text from your PDF document..."
                     value={documentContent}
-                    onChange={(e) => setDocumentContent(e.target.value)}
-                    rows={15}
+                    onChange={(e) => { setDocumentContent(e.target.value); setSelectedFile(null); setFileName(null);}}
+                    rows={10}
                     className="mt-1"
+                    disabled={!!selectedFile}
                   />
                 </div>
-                <Button onClick={handleLoadDocument} className="w-full" disabled={!documentContent.trim() || isLoading || isImproving}>
-                  <FilePlus2 className="mr-2 h-4 w-4" /> Load Document Content
+                <Button 
+                  onClick={handleLoadDocument} 
+                  className="w-full" 
+                  disabled={(!documentContent.trim() && !selectedFile) || isLoading || isImproving || isParsingPdf}
+                >
+                  {isParsingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FilePlus2 className="mr-2 h-4 w-4" />}
+                  {isParsingPdf ? "Processing PDF..." : "Load Document Content"}
                 </Button>
               </div>
             ) : (
@@ -219,7 +383,7 @@ export default function ChatPdfPage() {
                   <p className="text-sm text-muted-foreground font-medium">
                     Document loaded. You are now chatting with the AI assistant.
                   </p>
-                  <Button variant="outline" size="sm" onClick={handleLoadNewDocument} disabled={isLoading || isImproving}>
+                  <Button variant="outline" size="sm" onClick={handleLoadNewDocument} disabled={isLoading || isImproving || isParsingPdf}>
                     <Trash2 className="mr-2 h-4 w-4" /> Load New
                   </Button>
                 </div>
@@ -250,9 +414,9 @@ export default function ChatPdfPage() {
                     value={currentQuestion}
                     onChange={(e) => setCurrentQuestion(e.target.value)}
                     className="flex-1"
-                    disabled={isLoading || isImproving}
+                    disabled={isLoading || isImproving || isParsingPdf}
                   />
-                  <Button type="submit" size="icon" disabled={isLoading || isImproving || !currentQuestion.trim()} aria-label="Ask question">
+                  <Button type="submit" size="icon" disabled={isLoading || isImproving || isParsingPdf || !currentQuestion.trim()} aria-label="Ask question">
                     {isLoading && !isImproving ? <Loader2 className="h-5 w-5 animate-spin" /> : <SendHorizonal className="h-5 w-5" />}
                   </Button>
                   <Button 
@@ -260,7 +424,7 @@ export default function ChatPdfPage() {
                     variant="outline" 
                     size="icon" 
                     onClick={handleImproveDocument} 
-                    disabled={isLoading || isImproving}
+                    disabled={isLoading || isImproving || isParsingPdf}
                     aria-label="Improve document text"
                   >
                     {isImproving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Wand2 className="h-5 w-5" />}
@@ -272,7 +436,7 @@ export default function ChatPdfPage() {
           {!isDocumentLoaded && (
             <CardFooter>
                 <p className="text-xs text-muted-foreground">
-                    Note: This tool works with pasted text content. For complex PDFs with many images or intricate layouts, ensure you copy selectable text for best results. The AI will help improve the text content you provide.
+                    Note: For PDF uploads, text will be extracted. For complex PDFs or scanned documents, extraction quality may vary. Pasting selectable text can sometimes yield better results for AI processing.
                 </p>
             </CardFooter>
           )}
@@ -281,5 +445,3 @@ export default function ChatPdfPage() {
     </div>
   );
 }
-
-    
