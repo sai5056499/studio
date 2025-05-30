@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { chatWithPdf, type ChatWithPdfInput } from "@/ai/flows/chat-with-pdf-flow";
 import { improvePageContent, type ImprovePageContentInput, type ImprovePageContentOutput } from "@/ai/flows/improve-page-content";
-import { FileText, MessageSquare, Loader2, SendHorizonal, FilePlus2, Trash2, Wand2 } from "lucide-react";
+import { FileText, Loader2, SendHorizonal, FilePlus2, Trash2, Wand2 } from "lucide-react";
 import type { ChatMessage } from "@/lib/types"; 
 import { ChatMessageCard } from "@/components/chat/chat-message-card";
 
@@ -50,6 +50,14 @@ export default function ChatPdfPage() {
     setCurrentDocumentText(documentContent);
     setIsDocumentLoaded(true);
     setMessages([]); 
+    // Add an initial assistant message
+    setMessages([{
+      id: `assistant-greeting-${Date.now()}`,
+      role: "assistant",
+      content: "Document content loaded. How can I help you with it? Ask questions or request improvements.",
+      timestamp: new Date(),
+      type: "text",
+    }]);
     toast({ title: "Document Loaded", description: "You can now ask questions or request improvements for the document." });
   };
 
@@ -138,7 +146,7 @@ export default function ChatPdfPage() {
       const assistantMessage: ChatMessage = {
         id: `assistant-improvement-${Date.now()}`,
         role: "assistant",
-        content: "Here are the suggested improvements for your document:", // Placeholder, ChatMessageCard handles actual display
+        content: "Here are the suggested improvements for your document:", 
         timestamp: new Date(),
         type: "improvement", 
         data: result 
@@ -201,15 +209,15 @@ export default function ChatPdfPage() {
                     className="mt-1"
                   />
                 </div>
-                <Button onClick={handleLoadDocument} className="w-full" disabled={!documentContent.trim()}>
+                <Button onClick={handleLoadDocument} className="w-full" disabled={!documentContent.trim() || isLoading || isImproving}>
                   <FilePlus2 className="mr-2 h-4 w-4" /> Load Document Content
                 </Button>
               </div>
             ) : (
-              <div className="flex flex-col h-[calc(100vh-22rem)] sm:h-[calc(100vh-20rem)]">
+              <div className="flex flex-col h-[calc(100vh-20rem)] sm:h-[calc(100vh-18rem)]">
                 <div className="flex justify-between items-center mb-3 p-3 bg-muted/50 rounded-md gap-2">
                   <p className="text-sm text-muted-foreground font-medium">
-                    Document loaded. Ask questions or improve its content.
+                    Document loaded. You are now chatting with the AI assistant.
                   </p>
                   <Button variant="outline" size="sm" onClick={handleLoadNewDocument} disabled={isLoading || isImproving}>
                     <Trash2 className="mr-2 h-4 w-4" /> Load New
@@ -223,8 +231,13 @@ export default function ChatPdfPage() {
                     ))}
                      {(isLoading || isImproving) && messages.length > 0 && messages[messages.length -1].role === 'user' && (
                        <div className="flex items-start gap-3 p-4 rounded-lg shadow-sm bg-secondary/20">
-                          <Loader2 className="h-6 w-6 text-primary animate-spin" />
-                          <p className="text-sm text-muted-foreground">AI is working on your request...</p>
+                         <div className="flex items-center justify-center h-8 w-8 shrink-0 rounded-full bg-primary text-primary-foreground">
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                         </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-primary">AI Assistant is processing...</p>
+                            <p className="text-xs text-muted-foreground">Please wait a moment.</p>
+                          </div>
                        </div>
                     )}
                   </div>
@@ -240,7 +253,7 @@ export default function ChatPdfPage() {
                     disabled={isLoading || isImproving}
                   />
                   <Button type="submit" size="icon" disabled={isLoading || isImproving || !currentQuestion.trim()} aria-label="Ask question">
-                    {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <SendHorizonal className="h-5 w-5" />}
+                    {isLoading && !isImproving ? <Loader2 className="h-5 w-5 animate-spin" /> : <SendHorizonal className="h-5 w-5" />}
                   </Button>
                   <Button 
                     type="button" 
