@@ -12,22 +12,21 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { chatWithPdf, type ChatWithPdfInput } from "@/ai/flows/chat-with-pdf-flow";
 import { improvePageContent, type ImprovePageContentInput, type ImprovePageContentOutput } from "@/ai/flows/improve-page-content";
-import { FileText, Loader2, SendHorizonal, FilePlus2, Trash2, Wand2, UploadCloud, FileUp } from "lucide-react";
+import { FileText, Loader2, SendHorizonal, FilePlus2, Trash2, Wand2, UploadCloud } from "lucide-react";
 import type { ChatMessage } from "@/lib/types"; 
 import { ChatMessageCard } from "@/components/chat/chat-message-card";
 
-// Import pdfjs-dist
 import { GlobalWorkerOptions, getDocument, type PDFDocumentProxy } from 'pdfjs-dist';
-// The worker is imported as a module and its URL is set.
-// This is crucial for pdf.js to work correctly with bundlers like Webpack/Turbopack.
-import * as pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs';
+// Import the worker module namespace. We don't use it directly, but its presence
+// helps the bundler identify the dependency for the `new URL()` constructor.
+import * as PdfJsWorkerMjs from 'pdfjs-dist/legacy/build/pdf.worker.mjs';
 
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 export default function ChatPdfPage() {
-  const [documentContent, setDocumentContent] = React.useState<string>(""); // For pasted text
+  const [documentContent, setDocumentContent] = React.useState<string>("");
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [fileName, setFileName] = React.useState<string | null>(null);
   const [isParsingPdf, setIsParsingPdf] = React.useState<boolean>(false);
@@ -37,7 +36,7 @@ export default function ChatPdfPage() {
   
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [currentQuestion, setCurrentQuestion] = React.useState<string>("");
-  const [isLoading, setIsLoading] = React.useState<boolean>(false); // For AI calls
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [isImproving, setIsImproving] = React.useState<boolean>(false);
   
   const { toast } = useToast();
@@ -45,10 +44,20 @@ export default function ChatPdfPage() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
-    // Set the worker source for pdf.js. This needs to be done once.
-    // The `pdfjsWorker` is the imported module.
-    GlobalWorkerOptions.workerSrc = pdfjsWorker;
-  }, []);
+    try {
+      // Use `new URL` with `import.meta.url` for robust worker path resolution with bundlers.
+      // The path should point to the worker file within node_modules.
+      const workerUrl = new URL('pdfjs-dist/legacy/build/pdf.worker.mjs', import.meta.url);
+      GlobalWorkerOptions.workerSrc = workerUrl.toString();
+    } catch (error) {
+      console.error("Error setting PDF worker source:", error);
+      toast({
+        title: "PDF Worker Setup Error",
+        description: "Could not initialize the PDF processing worker. File uploads might not function correctly.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
 
   React.useEffect(() => {
     if (scrollAreaRef.current) {
@@ -84,7 +93,7 @@ export default function ChatPdfPage() {
       }
       setSelectedFile(file);
       setFileName(file.name);
-      setDocumentContent(""); // Clear pasted text if a file is chosen
+      setDocumentContent(""); 
     }
   };
 
@@ -131,10 +140,10 @@ export default function ChatPdfPage() {
     }
 
     if (!textToLoad.trim()) {
-      if (selectedFile) { // If file was selected but parsing failed/yielded no text
+      if (selectedFile) { 
          toast({ title: "No Text Extracted", description: "No text could be extracted from the selected PDF or it was empty.", variant: "destructive" });
       }
-      return; // Don't proceed if no text
+      return; 
     }
 
     setCurrentDocumentText(textToLoad);
@@ -165,8 +174,7 @@ export default function ChatPdfPage() {
       }
       setSelectedFile(file);
       setFileName(file.name);
-      setDocumentContent(""); // Clear pasted text
-      // Optionally auto-load: await handleLoadDocument();
+      setDocumentContent(""); 
       toast({title: "PDF Dropped", description: `${file.name} is ready. Click "Load Document Content".`})
     }
   };
