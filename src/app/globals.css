@@ -3,24 +3,14 @@
 @tailwind components;
 @tailwind utilities;
 
-@keyframes gradientAnimation {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
 body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   /* Updated animated gradient with new theme colors and slightly adjusted opacity for subtlety */
   background: linear-gradient(270deg, hsl(var(--primary) / 0.15), hsl(var(--accent) / 0.1), hsl(var(--secondary) / 0.15), hsl(var(--primary) / 0.1));
   background-size: 600% 600%;
-  animation: gradientAnimation 40s ease infinite;
+  /* background-position-x will be controlled by JS via --scroll-bg-pos-x */
+  /* Fallback to 0% if variable is not set */
+  background-position: var(--scroll-bg-pos-x, 0%) 50%;
 }
 
 @layer base {

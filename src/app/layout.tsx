@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ChatProvider } from "@/contexts/chat-context";
 import { TaskProvider } from "@/contexts/task-context";
 import { HabitProvider } from "@/contexts/habit-context"; // Import HabitProvider
+import ScrollReactiveBackground from '@/components/layout/ScrollReactiveBackground';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <ScrollReactiveBackground />
         <ChatProvider>
           <TaskProvider>
             <HabitProvider> {/* Wrap with HabitProvider */}
