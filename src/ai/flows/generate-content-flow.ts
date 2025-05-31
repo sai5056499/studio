@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const GenerateContentInputSchema = z.object({
+const GenerateContentInputSchema = z.object({
   prompt: z.string().min(1, "Prompt cannot be empty.").describe('The main topic or instruction for the content generation.'),
   contentType: z.enum(["blog_post", "email", "social_media_post", "poem", "short_story", "generic"])
     .default("generic")
@@ -24,7 +24,7 @@ export const GenerateContentInputSchema = z.object({
 });
 export type GenerateContentInput = z.infer<typeof GenerateContentInputSchema>;
 
-export const GenerateContentOutputSchema = z.object({
+const GenerateContentOutputSchema = z.object({
   generatedContent: z.string().describe('The AI-generated content based on the provided input.'),
   warnings: z.array(z.string()).optional().describe('Optional warnings, e.g., if content was truncated or instructions were hard to follow.'),
 });
