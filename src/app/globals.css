@@ -3,22 +3,9 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  /* Updated animated gradient with new theme colors and slightly adjusted opacity for subtlety */
-  background: linear-gradient(270deg, hsl(var(--primary) / 0.15), hsl(var(--accent) / 0.1), hsl(var(--secondary) / 0.15), hsl(var(--primary) / 0.1));
-  background-size: 600% 600%;
-  /* background-position-x will be controlled by JS via --scroll-bg-pos-x */
-  /* Fallback to 0% if variable is not set */
-  background-position: var(--scroll-bg-pos-x, 0%) 50%;
-}
-
 @layer base {
   :root {
-    /* "Focused Clarity (Evolved Dark)" Theme - Applied to Dark Mode Variables */
-    /* Light mode will retain its original violet theme for now, can be aligned later */
-
-    /* Default (Light Mode - Current Violet Theme) */
+    /* Light Mode (Current Violet Theme) */
     --background: 255 50% 98%; /* #F2F0FA - Very light lavender */
     --foreground: 250 10% 25%; /* Dark Violet-Gray for text */
 
@@ -87,8 +74,7 @@ body {
     --muted: 216 15% 22%;         /* #2A303A - Muted charcoal */
     --muted-foreground: 220 10% 68%; /* #9CA3AF - Lighter gray for muted text */
 
-    /* Accent is the same as primary for this theme, for strong CTAs */
-    --accent: 217 91% 60%;         /* #3B82F6 - Intelligent blue */
+    --accent: 217 91% 60%;         /* #3B82F6 - Intelligent blue (same as primary for this theme) */
     --accent-foreground: 210 50% 96%;  /* Bright cool white */
 
     --destructive: 0 72% 51%;       /* Standard destructive red, slightly desaturated */
@@ -115,15 +101,34 @@ body {
     --chart-4: 216 15% 60%;  /* Lighter Gray */
     --chart-5: 217 50% 75%;  /* Lighter Blue */
   }
-}
 
-@layer base {
-  * {
-    @apply border-border;
-  }
+  /* Apply common body styles and scroll-reactive background */
   body {
-    @apply text-foreground;
+    font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+    @apply text-foreground; /* Apply text color from the active theme */
+
+    /* Scroll-reactive gradient layered ON TOP of the solid theme background color. */
+    /* The gradient uses the active theme's variables for its colors. */
+    /* Opacities increased for better visibility */
+    background:
+      linear-gradient(
+        270deg,
+        hsl(var(--primary) / 0.25),     /* Primary color tint */
+        hsl(var(--secondary) / 0.2),    /* Secondary color tint */
+        hsl(var(--accent) / 0.25),      /* Accent color tint */
+        hsl(var(--primary) / 0.15)      /* Another primary color tint for variation */
+      ),
+      hsl(var(--background)); /* Solid background color from the theme */
+
+    background-size: 700% 700%; /* Oversized for smooth panning effect */
+    /* background-position-x is controlled by JS via --scroll-bg-pos-x */
+    background-position: var(--scroll-bg-pos-x, 0%) 50%;
+
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    @apply border-border;
   }
 }

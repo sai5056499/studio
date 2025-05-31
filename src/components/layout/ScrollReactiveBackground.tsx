@@ -5,12 +5,13 @@ import { useEffect, useCallback } from 'react';
 
 const ScrollReactiveBackground = () => {
   const handleScroll = useCallback(() => {
-    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    if (typeof window !== 'undefined' && typeof document !== 'undefined' && document.documentElement) {
       const scrollHeight = document.documentElement.scrollHeight;
       const clientHeight = document.documentElement.clientHeight;
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
 
-      if (scrollHeight <= clientHeight) { // No scrollbar or content doesn't overflow
+      // If content height is less than or equal to viewport height, no scrollbar, so set to 0%
+      if (scrollHeight <= clientHeight) {
         document.documentElement.style.setProperty('--scroll-bg-pos-x', '0%');
         return;
       }
@@ -19,8 +20,6 @@ const ScrollReactiveBackground = () => {
       const scrollPercentage = scrollTop / (scrollHeight - clientHeight);
       
       // Map scroll percentage (0-1) to a background-position-x percentage (0% to 100%)
-      // This will be interpreted by CSS's background-position logic.
-      // With a background-size of 600%, this allows panning across the oversized gradient.
       const bgPosX = scrollPercentage * 100; 
       document.documentElement.style.setProperty('--scroll-bg-pos-x', `${bgPosX}%`);
     }
@@ -28,11 +27,16 @@ const ScrollReactiveBackground = () => {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Initial call to set position based on initial scroll (e.g. on refresh or if already scrolled)
+      handleScroll(); 
       window.addEventListener('scroll', handleScroll, { passive: true });
-      handleScroll(); // Initial call to set position based on initial scroll (e.g. on refresh)
+      
+      // Also listen for resize, as scrollHeight might change
+      window.addEventListener('resize', handleScroll, { passive: true });
 
       return () => {
         window.removeEventListener('scroll', handleScroll);
+        window.removeEventListener('resize', handleScroll);
       };
     }
   }, [handleScroll]);
