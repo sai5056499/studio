@@ -2,13 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes gradientAnimation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background: linear-gradient(270deg, hsl(var(--primary) / 0.3), hsl(var(--accent) / 0.25), hsl(var(--secondary) / 0.3), hsl(var(--primary) / 0.2));
+  background-size: 600% 600%;
+  animation: gradientAnimation 35s ease infinite;
+  /* text-foreground and font-smoothing are applied in @layer base */
 }
 
 @layer base {
   :root {
-    --background: 255 50% 98%; /* #F2F0FA - Very light lavender */
+    --background: 255 50% 98%; /* #F2F0FA - Very light lavender - Still used by cards etc. */
     --foreground: 250 10% 25%; /* Dark Violet-Gray for text */
 
     --card: 255 50% 98%;
@@ -102,7 +118,9 @@ body {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    /* Removed @apply bg-background; The animated gradient on body selector above is now the main page background. */
+    /* Components using bg-background (like cards) will use the HSL var(--background) */
+    @apply text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
