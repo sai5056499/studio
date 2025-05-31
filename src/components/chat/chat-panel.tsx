@@ -25,6 +25,7 @@ import {
   History 
 } from "lucide-react";
 import type { ChatMessage } from "@/lib/types";
+import RotatingCube from "@/components/decorative/rotating-cube"; // Import the cube
 
 export function ChatPanel() {
   const { messages, addMessage, addMessages, clearChat, isLoading, setIsLoading } = useChat();
@@ -140,9 +141,10 @@ export function ChatPanel() {
     
     startTransition(async () => {
       setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Simulate AI response for generic messages
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulating network delay
       addMessage({
-        id: (Date.now() + 1).toString(),
+        id: (Date.now() + 1).toString(), // Ensure unique ID
         role: "assistant",
         content: "I've received your message. You can use the buttons above for specific actions like summarizing or improving content, or use the Task Planning page.",
         timestamp: new Date(),
@@ -189,6 +191,7 @@ export function ChatPanel() {
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         {messages.length === 0 && !isLoading && !isPending ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <RotatingCube /> {/* Added the cube here */}
             <div className="mb-10">
               <h2 className="text-4xl font-bold tracking-tight mb-2 text-primary">Hi,</h2>
               <p className="text-2xl text-foreground/80">How can I assist you today?</p>
@@ -271,4 +274,3 @@ export function ChatPanel() {
     </div>
   );
 }
-
