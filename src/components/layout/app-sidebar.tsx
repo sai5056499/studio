@@ -15,15 +15,31 @@ import {
 import { AppLogo } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { MessageSquare, ListChecks, History, LogOut, Settings, PenSquare, Languages, ScanText, FileQuestion } from "lucide-react";
+import { 
+  MessageSquare, 
+  ListChecks, 
+  History, 
+  LogOut, 
+  Settings, 
+  PenSquare, 
+  Languages, 
+  ScanText, 
+  FileQuestion,
+  LayoutDashboard, // Added
+  BarChart3,      // Added
+  Zap             // Added for Habits (example icon)
+} from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Chat", icon: MessageSquare },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }, // Added Dashboard
   { href: "/writer", label: "AI Writer", icon: PenSquare },
   { href: "/translate", label: "Translate", icon: Languages },
   { href: "/ocr", label: "OCR", icon: ScanText },
   { href: "/chat-pdf", label: "Chat PDF", icon: FileQuestion },
   { href: "/planning", label: "Task Planning", icon: ListChecks },
+  { href: "/habits", label: "Habits", icon: Zap }, // Added Habits
+  { href: "/analytics", label: "Analytics", icon: BarChart3 }, // Added Analytics
   { href: "/history", label: "Chat History", icon: History },
 ];
 
@@ -52,7 +68,7 @@ export function AppSidebar() {
                   className="justify-start"
                 >
                   <a>
-                    <item.icon className="h-5 w-5" /> {/* Icon size changed to h-5 w-5 */}
+                    <item.icon className="h-5 w-5" />
                     <span>{item.label}</span>
                   </a>
                 </SidebarMenuButton>
@@ -73,7 +89,7 @@ export function AppSidebar() {
                 className="justify-start"
               >
                 <a>
-                  <Settings className="h-5 w-5" /> {/* Icon size changed to h-5 w-5 */}
+                  <Settings className="h-5 w-5" />
                   <span>Settings</span>
                 </a>
               </SidebarMenuButton>
@@ -85,7 +101,7 @@ export function AppSidebar() {
               className="justify-start"
               // onClick={() => { /* TODO: Implement logout */ }}
             >
-              <LogOut className="h-5 w-5" /> {/* Icon size changed to h-5 w-5 */}
+              <LogOut className="h-5 w-5" />
               <span>Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>

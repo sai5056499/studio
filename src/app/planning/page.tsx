@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useTransition, useMemo, useCallback } from "react";
+import { useState, useTransition, useMemo, useCallback, useEffect } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { MiniCalendar } from "@/components/planning/mini-calendar";
 import { DashboardSummary } from "@/components/planning/dashboard-summary";
+import { useTasks } from "@/contexts/task-context"; // Import useTasks
 
 const taskPlanningSchema = z.object({
   taskDescription: z.string().min(10, "Task description must be at least 10 characters."),
@@ -40,7 +41,18 @@ const taskPlanningSchema = z.object({
 type TaskPlanningFormValues = z.infer<typeof taskPlanningSchema>;
 
 export default function TaskPlanningPage() {
-  const [plannedTasks, setPlannedTasks] = useState<PlannedTask[]>([]);
+  const { 
+    plannedTasks, 
+    addPlannedTask, 
+    updatePlannedTask, 
+    deletePlannedTask,
+    toggleSubTaskStatus,
+    updateTaskStatus,
+    toggleDailyReminder,
+    isLoading: isContextLoading, // Using isLoading from context now
+    setIsLoading: setIsContextLoading 
+  } = useTasks();
+  
   const [isAiPending, startAiTransition] = useTransition();
   const { toast } = useToast();
 
@@ -60,30 +72,36 @@ export default function TaskPlanningPage() {
     resolver: zodResolver(taskPlanningSchema),
   });
 
+  useEffect(() => {
+    // Sync isAiPending with context's isLoading for external indicators if needed
+    setIsContextLoading(isAiPending);
+  }, [isAiPending, setIsContextLoading]);
+
   const onSubmitAiTask: SubmitHandler<TaskPlanningFormValues> = (data) => {
     startAiTransition(async () => {
+      setIsContextLoading(true); // Indicate loading start
       try {
         const result = await aiPoweredTaskPlanning(data as AiPoweredTaskPlanningInput);
         const newTask: PlannedTask = {
           ...result,
-          id: `task-${Date.now()}`, // Main task ID
+          id: `task-${Date.now()}`, 
           originalDescription: data.taskDescription,
           deadline: data.deadline,
           createdAt: new Date(),
           isDailyReminderSet: false,
-          status: "todo", // Default status for the main task
+          status: "todo", 
           dailyTasks: result.dailyTasks.map((dt, dtIndex) => ({
             ...dt,
-            id: dt.id || `daily-${Date.now()}-${dtIndex}`, // Ensure daily task has an ID
-            status: "todo", // Default status for daily task
+            id: dt.id || `daily-${Date.now()}-${dtIndex}`, 
+            status: "todo", 
             subTasks: dt.subTasks.map((st, stIndex) => ({
               ...st,
-              id: st.id || `sub-${Date.now()}-${dtIndex}-${stIndex}`, // Ensure sub-task has an ID
-              status: "todo", // Default status for sub-task
+              id: st.id || `sub-${Date.now()}-${dtIndex}-${stIndex}`, 
+              status: "todo", 
             })),
           })),
         };
-        setPlannedTasks((prevTasks) => [newTask, ...prevTasks].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+        addPlannedTask(newTask);
         toast({
           title: "Task Planned Successfully!",
           description: `"${result.taskName}" has been added to your tasks.`,
@@ -97,91 +115,24 @@ export default function TaskPlanningPage() {
           description: errorMessage,
           variant: "destructive",
         });
+      } finally {
+        setIsContextLoading(false); // Indicate loading end
       }
     });
   };
 
-  const updateTaskInList = useCallback((updatedTask: PlannedTask) => {
-    setPlannedTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === updatedTask.id ? updatedTask : task
-      )
-    );
-  }, []);
-
   const handleUpdateTaskStatus = useCallback((taskId: string, newStatus: TaskStatus) => {
-    const taskIndex = plannedTasks.findIndex(t => t.id === taskId);
-    if (taskIndex === -1) return;
-
-    const updatedTasks = [...plannedTasks];
-    const taskToUpdate = { ...updatedTasks[taskIndex] };
-    taskToUpdate.status = newStatus;
-
-    // Cascade status changes
-    if (newStatus === "completed") {
-      taskToUpdate.dailyTasks = taskToUpdate.dailyTasks.map(dt => ({
-        ...dt,
-        status: "completed",
-        subTasks: dt.subTasks.map(st => ({ ...st, status: "completed" })),
-      }));
-    } else if (taskToUpdate.status !== "completed" && updatedTasks[taskIndex].status === "completed") { // Reopened from completed
-       taskToUpdate.dailyTasks = taskToUpdate.dailyTasks.map(dt => ({
-        ...dt,
-        status: "todo", // Revert children to todo
-        subTasks: dt.subTasks.map(st => ({ ...st, status: "todo" })),
-      }));
-    }
-    
-    updatedTasks[taskIndex] = taskToUpdate;
-    setPlannedTasks(updatedTasks);
-
+    updateTaskStatus(taskId, newStatus); // Use context function
+    const taskName = plannedTasks.find(t => t.id === taskId)?.taskName || "Task";
     toast({
       title: "Task Status Updated",
-      description: `"${taskToUpdate.taskName}" moved to ${newStatus}.`,
+      description: `"${taskName}" moved to ${newStatus}.`,
     });
-  }, [plannedTasks, toast]);
-
+  }, [updateTaskStatus, plannedTasks, toast]);
 
   const handleToggleSubTaskStatus = useCallback((taskId: string, dailyTaskIndex: number, subTaskIndex: number) => {
-    setPlannedTasks(prevTasks => {
-      const taskIndex = prevTasks.findIndex(t => t.id === taskId);
-      if (taskIndex === -1) return prevTasks;
-
-      const newTasks = [...prevTasks];
-      const taskToUpdate = JSON.parse(JSON.stringify(newTasks[taskIndex])) as PlannedTask; // Deep clone
-
-      const subTask = taskToUpdate.dailyTasks[dailyTaskIndex].subTasks[subTaskIndex];
-      subTask.status = subTask.status === "completed" ? "todo" : "completed";
-
-      // Update daily task status based on its sub-tasks
-      const allSubTasksCompleted = taskToUpdate.dailyTasks[dailyTaskIndex].subTasks.every(st => st.status === "completed");
-      const anySubTaskInProgress = taskToUpdate.dailyTasks[dailyTaskIndex].subTasks.some(st => st.status === "inprogress"); 
-
-      if (allSubTasksCompleted) {
-        taskToUpdate.dailyTasks[dailyTaskIndex].status = "completed";
-      } else if (anySubTaskInProgress || taskToUpdate.dailyTasks[dailyTaskIndex].subTasks.some(st => st.status === "completed")) {
-        taskToUpdate.dailyTasks[dailyTaskIndex].status = "inprogress";
-      } else {
-        taskToUpdate.dailyTasks[dailyTaskIndex].status = "todo";
-      }
-
-      // Update main task status based on its daily tasks
-      const allDailyTasksCompleted = taskToUpdate.dailyTasks.every(dt => dt.status === "completed");
-      const anyDailyTaskInProgress = taskToUpdate.dailyTasks.some(dt => dt.status === "inprogress");
-
-      if (allDailyTasksCompleted) {
-        taskToUpdate.status = "completed";
-      } else if (anyDailyTaskInProgress || taskToUpdate.dailyTasks.some(dt => dt.status === "completed")) {
-        taskToUpdate.status = "inprogress";
-      } else {
-        taskToUpdate.status = "todo";
-      }
-      
-      newTasks[taskIndex] = taskToUpdate;
-      return newTasks;
-    });
-  }, []);
-
+    toggleSubTaskStatus(taskId, dailyTaskIndex, subTaskIndex); // Use context function
+  }, [toggleSubTaskStatus]);
 
   const handleDeleteRequest = (taskId: string) => {
     setDeletingTaskId(taskId);
@@ -191,7 +142,7 @@ export default function TaskPlanningPage() {
   const confirmDeleteTask = () => {
     if (!deletingTaskId) return;
     const taskToDelete = plannedTasks.find(task => task.id === deletingTaskId);
-    setPlannedTasks(prevTasks => prevTasks.filter(task => task.id !== deletingTaskId));
+    deletePlannedTask(deletingTaskId); // Use context function
     setIsDeleteAlertOpen(false);
     if (taskToDelete) {
       toast({
@@ -207,40 +158,33 @@ export default function TaskPlanningPage() {
     setIsEditModalOpen(true);
   };
 
-  const handleSaveEditedTask = (updatedTask: PlannedTask) => {
+  const handleSaveEditedTask = (updatedTaskData: PlannedTask) => {
     setIsSavingEdit(true);
-     const taskWithProperSubItems = {
-      ...updatedTask,
-      dailyTasks: updatedTask.dailyTasks.map((dt, dtIdx) => ({
+     const taskWithProperSubItems = { // Ensure IDs and defaults for potentially new sub-items
+      ...updatedTaskData,
+      dailyTasks: updatedTaskData.dailyTasks.map((dt, dtIdx) => ({
         ...dt,
-        id: dt.id || `daily-${updatedTask.id}-${dtIdx}`,
+        id: dt.id || `daily-${updatedTaskData.id}-${Date.now()}-${dtIdx}`,
         status: dt.status || 'todo',
         subTasks: dt.subTasks.map((st, stIdx) => ({
           ...st,
-          id: st.id || `sub-${updatedTask.id}-${dt.id || dtIdx}-${stIdx}`,
+          id: st.id || `sub-${updatedTaskData.id}-${dt.id || dtIdx}-${Date.now()}-${stIdx}`,
           status: st.status || 'todo',
         })),
       })),
     };
-
-    updateTaskInList(taskWithProperSubItems);
+    updatePlannedTask(taskWithProperSubItems); // Use context function
     setIsEditModalOpen(false);
     setEditingTask(null);
     setIsSavingEdit(false);
     toast({
       title: "Task Updated",
-      description: `Changes to "${updatedTask.taskName}" have been saved.`,
+      description: `Changes to "${updatedTaskData.taskName}" have been saved.`,
     });
   };
   
-  const toggleDailyReminder = (taskId: string) => {
-    setPlannedTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === taskId
-          ? { ...task, isDailyReminderSet: !task.isDailyReminderSet }
-          : task
-      )
-    );
+  const handleToggleDailyReminder = (taskId: string) => {
+    toggleDailyReminder(taskId); // Use context function
     const task = plannedTasks.find(t => t.id === taskId);
     if (task) {
       toast({
@@ -300,8 +244,8 @@ export default function TaskPlanningPage() {
                       <p className="text-sm text-destructive mt-1">{errors.deadline.message}</p>
                     )}
                   </div>
-                  <Button type="submit" className="w-full" disabled={isAiPending}>
-                    {isAiPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PackagePlus className="mr-2 h-4 w-4" />}
+                  <Button type="submit" className="w-full" disabled={isAiPending || isContextLoading}>
+                    {isAiPending || isContextLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PackagePlus className="mr-2 h-4 w-4" />}
                     Plan Task with AI
                   </Button>
                 </form>
@@ -315,7 +259,7 @@ export default function TaskPlanningPage() {
 
           <div className="lg:col-span-2">
             <DashboardSummary tasks={plannedTasks} />
-             {plannedTasks.length === 0 && !isAiPending ? (
+             {plannedTasks.length === 0 && !isAiPending && !isContextLoading ? (
                <Alert className="bg-primary/5 col-span-full mt-6 lg:mt-0">
                 <ListChecks className="h-4 w-4 text-primary" />
                 <AlertTitle className="font-semibold text-primary">No tasks planned yet.</AlertTitle>
@@ -324,7 +268,7 @@ export default function TaskPlanningPage() {
                 </AlertDescription>
               </Alert>
             ) : (
-              <ScrollArea className="h-[calc(100vh-18rem)] @lg:h-[calc(100vh-12rem)]"> {/* Adjusted height for dashboard summary */}
+              <ScrollArea className="h-[calc(100vh-18rem)] @lg:h-[calc(100vh-12rem)]">
                  <div className="grid grid-cols-1 @[30rem]:grid-cols-2 @[60rem]:grid-cols-3 gap-4">
                   {(["todo", "inprogress", "completed"] as TaskStatus[]).map((status) => (
                     <div key={status} className="space-y-4 p-2 rounded-lg bg-muted/30 min-h-[200px]">
@@ -340,7 +284,7 @@ export default function TaskPlanningPage() {
                               onUpdateStatus={handleUpdateTaskStatus}
                               onDelete={handleDeleteRequest}
                               onEdit={handleEditRequest}
-                              onToggleReminder={toggleDailyReminder}
+                              onToggleReminder={handleToggleDailyReminder}
                               onToggleSubTaskStatus={handleToggleSubTaskStatus}
                             />
                           ))}
