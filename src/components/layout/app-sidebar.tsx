@@ -16,7 +16,7 @@ import { AppLogo } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { 
-  MessageSquare, 
+  LayoutDashboard, // Changed from MessageSquare for the root path
   ListChecks, 
   History, 
   LogOut, 
@@ -25,21 +25,20 @@ import {
   Languages, 
   ScanText, 
   FileQuestion,
-  LayoutDashboard, // Added
-  BarChart3,      // Added
-  Zap             // Added for Habits (example icon)
+  Zap,          // Kept for Habits
+  BarChart3,    // Kept for Analytics
+  MessageSquare // Added for a potential dedicated chat page later if needed, or remove if / is always dashboard+chat
 } from "lucide-react";
 
 const navItems = [
-  { href: "/", label: "Chat", icon: MessageSquare },
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }, // Added Dashboard
+  { href: "/", label: "Dashboard", icon: LayoutDashboard }, // Root is now Dashboard
   { href: "/writer", label: "AI Writer", icon: PenSquare },
   { href: "/translate", label: "Translate", icon: Languages },
   { href: "/ocr", label: "OCR", icon: ScanText },
   { href: "/chat-pdf", label: "Chat PDF", icon: FileQuestion },
   { href: "/planning", label: "Task Planning", icon: ListChecks },
-  { href: "/habits", label: "Habits", icon: Zap }, // Added Habits
-  { href: "/analytics", label: "Analytics", icon: BarChart3 }, // Added Analytics
+  { href: "/habits", label: "Habits", icon: Zap }, 
+  { href: "/analytics", label: "Analytics", icon: BarChart3 }, 
   { href: "/history", label: "Chat History", icon: History },
 ];
 

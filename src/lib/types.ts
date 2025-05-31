@@ -45,3 +45,22 @@ export type PageContentSource = {
   content: string;
   sourceUrl?: string; // Optional: URL of the page if content is from a specific page
 };
+
+// Habit Tracking Types
+export interface Habit {
+  id: string;
+  name: string;
+  iconName: string; // Name of a lucide-react icon
+  goal: number; // e.g., times per day
+  completedToday: number;
+  streak: number;
+  lastCompletedDate: string | null; // ISO date string (YYYY-MM-DD)
+  createdAt: Date;
+}
+
+// For Add/Edit Habit Form
+export type HabitFormData = {
+  name: string;
+  iconName: string;
+  goal: number;
+};
