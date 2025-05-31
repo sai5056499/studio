@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,15 +17,19 @@
 
 body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  background: linear-gradient(270deg, hsl(var(--primary) / 0.3), hsl(var(--accent) / 0.25), hsl(var(--secondary) / 0.3), hsl(var(--primary) / 0.2));
+  /* Updated animated gradient with new theme colors and slightly adjusted opacity for subtlety */
+  background: linear-gradient(270deg, hsl(var(--primary) / 0.15), hsl(var(--accent) / 0.1), hsl(var(--secondary) / 0.15), hsl(var(--primary) / 0.1));
   background-size: 600% 600%;
-  animation: gradientAnimation 35s ease infinite;
-  /* text-foreground and font-smoothing are applied in @layer base */
+  animation: gradientAnimation 40s ease infinite;
 }
 
 @layer base {
   :root {
-    --background: 255 50% 98%; /* #F2F0FA - Very light lavender - Still used by cards etc. */
+    /* "Focused Clarity (Evolved Dark)" Theme - Applied to Dark Mode Variables */
+    /* Light mode will retain its original violet theme for now, can be aligned later */
+
+    /* Default (Light Mode - Current Violet Theme) */
+    --background: 255 50% 98%; /* #F2F0FA - Very light lavender */
     --foreground: 250 10% 25%; /* Dark Violet-Gray for text */
 
     --card: 255 50% 98%;
@@ -34,82 +39,91 @@ body {
     --popover-foreground: 250 10% 25%;
 
     --primary: 250 80% 60%; /* #6A4AEB - Deep violet */
-    --primary-foreground: 250 50% 98%; /* Light lavender for text on primary */
+    --primary-foreground: 250 50% 98%;
 
-    --secondary: 250 70% 85%; /* Lighter shade of primary for secondary elements */
-    --secondary-foreground: 250 80% 60%; /* Deep violet for text on secondary */
+    --secondary: 250 70% 85%;
+    --secondary-foreground: 250 80% 60%;
 
-    --muted: 250 40% 90%; /* Muted lavender */
+    --muted: 250 40% 90%;
     --muted-foreground: 250 10% 45%;
 
     --accent: 250 90% 75%; /* #9479F7 - Lighter purple */
-    --accent-foreground: 250 50% 98%; /* Light lavender for text on accent */
+    --accent-foreground: 250 50% 98%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 250 30% 88%; /* Border color based on lavender */
-    --input: 250 30% 92%; /* Input background */
-    --ring: 250 80% 60%; /* Deep violet for focus rings */
+    --border: 250 30% 88%;
+    --input: 250 30% 92%;
+    --ring: 250 80% 60%;
 
     --radius: 0.5rem;
 
-    /* Sidebar specific theme variables */
-    --sidebar-background: 250 80% 55%; /* Slightly darker deep violet for sidebar */
-    --sidebar-foreground: 250 50% 95%; /* Light text for sidebar */
-    --sidebar-primary: 250 90% 75%; /* Accent purple for active/hover items in sidebar */
+    /* Sidebar specific theme variables (Light Mode - Current Violet) */
+    --sidebar-background: 250 80% 55%;
+    --sidebar-foreground: 250 50% 95%;
+    --sidebar-primary: 250 90% 75%;
     --sidebar-primary-foreground: 250 50% 98%;
-    --sidebar-accent: 250 80% 65%; /* Hover bg for sidebar items */
+    --sidebar-accent: 250 80% 65%;
     --sidebar-accent-foreground: 250 50% 98%;
     --sidebar-border: 250 80% 50%;
     --sidebar-ring: 250 90% 75%;
 
-    --chart-1: 250 80% 60%;
-    --chart-2: 250 90% 75%;
-    --chart-3: 250 70% 50%;
-    --chart-4: 250 60% 65%;
-    --chart-5: 250 50% 70%;
+    /* Chart Colors (Light Mode - Current Violet Based) */
+    --chart-1: 250 80% 60%;  /* Primary Violet */
+    --chart-2: 250 90% 75%;  /* Accent Purple */
+    --chart-3: 250 70% 50%;  /* Darker Violet */
+    --chart-4: 250 60% 65%;  /* Muted Violet */
+    --chart-5: 250 50% 70%;  /* Lighter Muted Violet */
   }
 
   .dark {
-    /* Keeping dark mode fairly standard for now, can be adjusted if needed */
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+    /* "Focused Clarity (Evolved Dark)" Palette */
+    --background: 216 33% 10%;    /* #0D1117 - Deep charcoal */
+    --foreground: 220 14% 92%;    /* #E5E7EB - Off-white */
 
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
+    --card: 216 20% 12%;          /* #161B22 - Slightly lighter charcoal */
+    --card-foreground: 220 14% 92%; /* #E5E7EB */
 
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 216 20% 10%;        /* Darker popover for contrast */
+    --popover-foreground: 220 14% 92%;
 
-    --primary: 250 80% 60%; /* #6A4AEB */
-    --primary-foreground: 250 50% 98%;
+    --primary: 217 91% 60%;       /* #3B82F6 - Intelligent blue */
+    --primary-foreground: 210 50% 96%; /* #F0F4F8 - Bright cool white for text on blue */
 
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 220 9% 49%;      /* #6B7280 - Lavender-gray (used as secondary button / muted element base) */
+    --secondary-foreground: 220 14% 92%; /* Off-white text on secondary */
 
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 216 15% 22%;         /* #2A303A - Muted charcoal */
+    --muted-foreground: 220 10% 68%; /* #9CA3AF - Lighter gray for muted text */
 
-    --accent: 250 90% 75%; /* #9479F7 */
-    --accent-foreground: 0 0% 98%;
+    /* Accent is the same as primary for this theme, for strong CTAs */
+    --accent: 217 91% 60%;         /* #3B82F6 - Intelligent blue */
+    --accent-foreground: 210 50% 96%;  /* Bright cool white */
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 72% 51%;       /* Standard destructive red, slightly desaturated */
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 250 80% 60%; /* #6A4AEB */
-    
-    /* Sidebar specific theme variables for dark mode */
-    --sidebar-background: 240 8% 12%; /* Darker violet-gray for sidebar */
-    --sidebar-foreground: 0 0% 95%; /* Light text for sidebar */
-    --sidebar-primary: 250 80% 60%; /* Primary purple for active/hover items in sidebar */
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 5% 20%; /* Hover bg for sidebar items */
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 240 5% 18%;
-    --sidebar-ring: 250 80% 60%;
+    --border: 216 15% 28%;         /* #394251 - Slightly lighter border */
+    --input: 216 15% 18%;          /* #21262D - Darker input background */
+    --ring: 217 91% 65%;          /* Brighter blue for focus rings */
+
+    /* Sidebar specific theme variables (Dark Mode - Focused Clarity) */
+    --sidebar-background: 216 25% 14%; /* #1A202C - Slightly distinct dark sidebar */
+    --sidebar-foreground: 220 14% 85%; /* #D1D5DB - Slightly softer text for sidebar */
+    --sidebar-primary: 217 91% 60%;    /* Intelligent blue for active/hover items */
+    --sidebar-primary-foreground: 210 50% 96%;
+    --sidebar-accent: 216 20% 18%;     /* Darker hover bg for sidebar items */
+    --sidebar-accent-foreground: 210 50% 96%;
+    --sidebar-border: 216 20% 15%;     /* Darker border */
+    --sidebar-ring: 217 91% 65%;
+
+    /* Chart Colors (Dark Mode - Focused Clarity Based) */
+    --chart-1: 217 91% 60%;  /* Primary Blue */
+    --chart-2: 205 80% 55%;  /* A slightly different shade of blue or cyan */
+    --chart-3: 220 9% 49%;   /* Lavender-gray (Secondary Accent) */
+    --chart-4: 216 15% 60%;  /* Lighter Gray */
+    --chart-5: 217 50% 75%;  /* Lighter Blue */
   }
 }
 
@@ -118,8 +132,6 @@ body {
     @apply border-border;
   }
   body {
-    /* Removed @apply bg-background; The animated gradient on body selector above is now the main page background. */
-    /* Components using bg-background (like cards) will use the HSL var(--background) */
     @apply text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
