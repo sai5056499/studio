@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -84,7 +85,9 @@ const SidebarProvider = React.forwardRef<
         }
 
         // This sets the cookie to keep the sidebar state.
-        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        if (typeof document !== 'undefined') {
+          document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        }
       },
       [setOpenProp, open]
     )
@@ -107,9 +110,10 @@ const SidebarProvider = React.forwardRef<
           toggleSidebar()
         }
       }
-
-      window.addEventListener("keydown", handleKeyDown)
-      return () => window.removeEventListener("keydown", handleKeyDown)
+      if (typeof window !== 'undefined') {
+        window.addEventListener("keydown", handleKeyDown)
+        return () => window.removeEventListener("keydown", handleKeyDown)
+      }
     }, [toggleSidebar])
 
     // We add a state so that we can do data-state="expanded" or "collapsed".
@@ -176,6 +180,11 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const [hasMounted, setHasMounted] = React.useState(false);
+
+    React.useEffect(() => {
+      setHasMounted(true);
+    }, []);
 
     if (collapsible === "none") {
       return (
@@ -192,7 +201,7 @@ const Sidebar = React.forwardRef<
       )
     }
 
-    if (isMobile) {
+    if (hasMounted && isMobile) {
       return (
         <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
           <SheetContent
@@ -211,7 +220,17 @@ const Sidebar = React.forwardRef<
         </Sheet>
       )
     }
+    
+    // Render desktop sidebar or null/skeleton if not yet mounted and mobile state unknown
+    // To match SSR, we render the desktop version if !hasMounted OR if !isMobile
+    if (!hasMounted && !isMobile) { // Initial render matches SSR (desktop)
+        // Fall through to desktop rendering logic
+    } else if (!hasMounted) { // Still not mounted, avoid rendering mobile version yet
+        return null; // Or a skeleton for the sidebar
+    }
 
+
+    // Desktop sidebar rendering (or initial client render before mobile is confirmed)
     return (
       <div
         ref={ref}
@@ -761,3 +780,5 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+      
