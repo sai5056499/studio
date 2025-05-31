@@ -22,6 +22,7 @@ import { Loader2 } from "lucide-react";
 import HabitIcon from "./habit-icon"; // For preview
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import * as LucideIcons from "lucide-react";
+import { cn } from "@/lib/utils"; // Added import for cn
 
 const iconList = Object.keys(LucideIcons).filter(key => key !== "createLucideIcon" && key !== "icons" && key[0] === key[0].toUpperCase());
 
