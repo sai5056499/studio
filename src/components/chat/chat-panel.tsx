@@ -199,7 +199,7 @@ export function ChatPanel() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl w-full">
               <PageContentModal
                 triggerButton={
-                  <Button variant="outline" className="w-full justify-start p-5 text-left h-auto rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                  <Button variant="outline" className="w-full justify-start p-5 text-left h-auto rounded-lg shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
                     <Clipboard className="mr-3 h-6 w-6 text-primary/80" />
                     <div>
                       <span className="font-semibold text-base text-foreground">Analyze Page Content</span>
@@ -214,7 +214,7 @@ export function ChatPanel() {
               />
               <PageContentModal
                 triggerButton={
-                  <Button variant="outline" className="w-full justify-start p-5 text-left h-auto rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                  <Button variant="outline" className="w-full justify-start p-5 text-left h-auto rounded-lg shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
                     <Wand2 className="mr-3 h-6 w-6 text-primary/80" />
                     <div>
                       <span className="font-semibold text-base text-foreground">Improve Text</span>
@@ -227,7 +227,7 @@ export function ChatPanel() {
                 actionButtonText="Get Suggestions"
                 onConfirm={handleImproveContent}
               />
-              <Button asChild variant="outline" className="w-full justify-start p-5 text-left h-auto rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <Button asChild variant="outline" className="w-full justify-start p-5 text-left h-auto rounded-lg shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
                 <Link href="/planning">
                   <ListChecks className="mr-3 h-6 w-6 text-primary/80" />
                   <div>
@@ -236,7 +236,7 @@ export function ChatPanel() {
                   </div>
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="w-full justify-start p-5 text-left h-auto rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <Button asChild variant="outline" className="w-full justify-start p-5 text-left h-auto rounded-lg shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
                 <Link href="/history">
                   <History className="mr-3 h-6 w-6 text-primary/80" />
                   <div>
