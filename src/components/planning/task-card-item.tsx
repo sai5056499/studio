@@ -81,8 +81,8 @@ export function TaskCardItem({
     <Card className="shadow-lg w-full break-inside-avoid-column">
       <CardHeader>
         <div className="flex justify-between items-start gap-2">
-          <div className="flex-grow">
-            <CardTitle className="text-lg mb-1">{task.taskName}</CardTitle>
+          <div className="flex-grow min-w-0"> {/* Added min-w-0 for better flex handling */}
+            <CardTitle className="text-lg mb-1 break-words">{task.taskName}</CardTitle> {/* Added break-words */}
             <div className="flex items-center text-xs text-muted-foreground mb-1">
               <CalendarClock className="inline-block mr-1 h-3 w-3" />
               <span>Deadline: {task.deadline}</span>
@@ -97,9 +97,12 @@ export function TaskCardItem({
               size="sm"
               onClick={() => onToggleReminder(task.id)}
               className="text-xs px-2 py-1 h-auto"
+              aria-label={task.isDailyReminderSet ? "Turn off daily reminder" : "Set daily reminder"}
             >
               {task.isDailyReminderSet ? <BellOff className="mr-1 h-3 w-3" /> : <BellRing className="mr-1 h-3 w-3" />}
-              <span className="group-data-[collapsible=icon]:hidden">{task.isDailyReminderSet ? "Reminder On" : "Set Reminder"}</span>
+              <span className="hidden sm:inline group-data-[collapsible=icon]:hidden"> {/* Text hidden on <sm screens */}
+                {task.isDailyReminderSet ? "Reminder On" : "Set Reminder"}
+              </span>
             </Button>
              <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -217,3 +220,5 @@ export function TaskCardItem({
     </Card>
   );
 }
+
+    
