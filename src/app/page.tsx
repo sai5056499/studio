@@ -6,30 +6,48 @@ import { TaskSummaryWidget } from "@/components/dashboard/task-summary-widget";
 import { HabitStreaksWidget } from "@/components/dashboard/habit-streaks-widget";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export default function HomePage() { // Renamed from ChatPage
+export default function HomePage() {
   return (
-    <div className="flex h-full flex-col"> {/* Changed height to full for better scroll */}
-      <AppHeader title="Dashboard & AI Chat" /> {/* Updated title */}
-      <ScrollArea className="flex-1"> {/* Added ScrollArea for the whole page content */}
-        <main className="p-4 md:p-6 space-y-8"> {/* Added padding and spacing */}
-          {/* Dashboard Widgets Section */}
-          <section id="dashboard-widgets">
-            <div className="grid gap-6">
-              <TaskSummaryWidget />
-              <HabitStreaksWidget />
-              {/* Future widgets can be added here */}
-            </div>
-          </section>
+    <div className="flex h-full flex-col">
+      <AppHeader title="Dashboard & AI Chat" />
+      {/*
+        Main content area uses flexbox.
+        - Stacks vertically by default (for mobile).
+        - Switches to horizontal layout (side-by-side) on medium screens and up (md:flex-row).
+        - overflow-hidden is important for child ScrollAreas/flex-grow to work correctly.
+        - gap-6 provides spacing between the columns.
+      */}
+      <main className="flex-1 flex flex-col md:flex-row overflow-hidden p-4 md:p-6 gap-6">
+        {/* Left Column: Dashboard Widgets */}
+        {/*
+          - On mobile (stacked layout), takes full width implicitly.
+          - On medium screens, takes 2/5 width. On large screens, 1/3 width.
+          - ScrollArea handles overflow for the widgets within this column.
+        */}
+        <ScrollArea className="w-full md:w-2/5 lg:w-1/3">
+          <div className="space-y-6">
+            <TaskSummaryWidget />
+            <HabitStreaksWidget />
+            {/* Future widgets can be added here */}
+          </div>
+        </ScrollArea>
 
-          {/* Chat Panel Section - made it take less vertical space initially */}
-          <section id="chat-panel-section" className="h-[calc(100svh-200px)] md:h-auto md:min-h-[500px] flex flex-col">
-             <h2 className="text-xl font-semibold mb-4">AI Chat Assistant</h2>
-            <div className="flex-grow rounded-lg border shadow-sm overflow-hidden">
-                <ChatPanel />
-            </div>
-          </section>
-        </main>
-      </ScrollArea>
+        {/* Right Column: Chat Panel */}
+        {/*
+          - flex-1 makes it take the remaining width on md+ screens.
+          - flex flex-col allows the ChatPanel container to grow.
+        */}
+        <div className="flex-1 flex flex-col h-full">
+          <h2 className="text-xl font-semibold mb-4 hidden md:block">AI Chat Assistant</h2> {/* Title for chat, hidden on mobile where it might be redundant */}
+          {/*
+            - flex-grow allows this container to fill the vertical space of the right column.
+            - ChatPanel component has its own internal scrolling.
+          */}
+          <div className="flex-grow rounded-lg border shadow-sm overflow-hidden">
+            <ChatPanel />
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
