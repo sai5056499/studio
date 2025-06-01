@@ -18,7 +18,23 @@ export default function HomePage() {
         - gap-6 provides spacing between the columns.
       */}
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden p-4 md:p-6 gap-6">
-        {/* Left Column: Dashboard Widgets */}
+        {/* Left Column: Chat Panel */}
+        {/*
+          - flex-1 makes it take the primary width on md+ screens when side-by-side.
+          - flex flex-col allows the ChatPanel container to grow.
+        */}
+        <div className="flex-1 flex flex-col h-full">
+          <h2 className="text-xl font-semibold mb-4 hidden md:block">AI Chat Assistant</h2> {/* Title for chat, hidden on mobile */}
+          {/*
+            - flex-grow allows this container to fill the vertical space of the left column.
+            - ChatPanel component has its own internal scrolling.
+          */}
+          <div className="flex-grow rounded-lg border shadow-sm overflow-hidden">
+            <ChatPanel />
+          </div>
+        </div>
+
+        {/* Right Column: Dashboard Widgets */}
         {/*
           - On mobile (stacked layout), takes full width implicitly.
           - On medium screens, takes 2/5 width. On large screens, 1/3 width.
@@ -31,22 +47,6 @@ export default function HomePage() {
             {/* Future widgets can be added here */}
           </div>
         </ScrollArea>
-
-        {/* Right Column: Chat Panel */}
-        {/*
-          - flex-1 makes it take the remaining width on md+ screens.
-          - flex flex-col allows the ChatPanel container to grow.
-        */}
-        <div className="flex-1 flex flex-col h-full">
-          <h2 className="text-xl font-semibold mb-4 hidden md:block">AI Chat Assistant</h2> {/* Title for chat, hidden on mobile where it might be redundant */}
-          {/*
-            - flex-grow allows this container to fill the vertical space of the right column.
-            - ChatPanel component has its own internal scrolling.
-          */}
-          <div className="flex-grow rounded-lg border shadow-sm overflow-hidden">
-            <ChatPanel />
-          </div>
-        </div>
       </main>
     </div>
   );
