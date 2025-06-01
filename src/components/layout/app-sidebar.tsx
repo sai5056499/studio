@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }, // Updated to /dashboard
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/writer", label: "AI Writer", icon: PenSquare },
   { href: "/translate", label: "Translate", icon: Languages },
   { href: "/ocr", label: "OCR", icon: ScanText },
@@ -48,12 +48,14 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" variant="sidebar">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2 p-2 group-data-[collapsible=icon]:justify-center">
-          <AppLogo className="h-8 w-8 text-sidebar-primary" />
-          <span className="text-lg font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-            Content Ally
-          </span>
-        </div>
+        <Link href="/" passHref legacyBehavior>
+          <a className="flex items-center gap-2 p-2 group-data-[collapsible=icon]:justify-center outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring rounded-sm">
+            <AppLogo className="h-8 w-8 text-sidebar-primary" />
+            <span className="text-lg font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+              Content Ally
+            </span>
+          </a>
+        </Link>
       </SidebarHeader>
       <SidebarContent className="flex-1 overflow-y-auto">
         <SidebarMenu className="p-2">
