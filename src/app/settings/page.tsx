@@ -65,7 +65,7 @@ export default function SettingsPage() {
 
   const applyTheme = (theme: Theme) => {
     localStorage.setItem("theme", theme);
-    setCurrentTheme(theme);
+    setCurrentTheme(theme); // Update state before manipulating classList
     if (theme === "light") {
       document.documentElement.classList.remove("dark");
     } else if (theme === "dark") {
@@ -142,6 +142,7 @@ export default function SettingsPage() {
                 </RadioGroup>
                 <p className="text-xs text-muted-foreground">
                   Selecting "System" will automatically use your operating system's theme preference.
+                  The Light theme is "Violet" and the Dark theme is "Neon Depths".
                 </p>
               </CardContent>
             </Card>
