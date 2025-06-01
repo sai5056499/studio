@@ -33,7 +33,7 @@ const featureItems = [
 
 const Sphere = ({ size, color, top, left, right, bottom, animationDelay }: { size: string; color: string; top?: string; left?: string; right?: string; bottom?: string; animationDelay?: string }) => (
   <div
-    className="absolute rounded-full opacity-60 animate-pulse"
+    className="absolute rounded-full opacity-50 animate-pulse" // Base opacity adjusted
     style={{
       width: size,
       height: size,
@@ -42,9 +42,9 @@ const Sphere = ({ size, color, top, left, right, bottom, animationDelay }: { siz
       left,
       right,
       bottom,
-      animationDuration: '5s',
+      animationDuration: '7s', // Slightly longer duration
       animationDelay: animationDelay || '0s',
-      filter: 'blur(4px)'
+      filter: 'blur(5px)' // Slightly more blur
     }}
     data-ai-hint="sphere decoration"
   ></div>
@@ -64,11 +64,11 @@ export default function LandingPage() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-center p-4 md:p-8 text-white landing-page-bg">
       {/* Background Shapes & Spheres - Decorative */}
-      <Sphere size="150px" color="radial-gradient(circle, rgba(170,100,255,0.7) 0%, rgba(100,100,255,0.3) 100%)" top="10%" left="5%" animationDelay="0s" />
-      <Sphere size="80px" color="radial-gradient(circle, rgba(100,200,255,0.6) 0%, rgba(150,100,255,0.2) 100%)" top="60%" left="15%" animationDelay="1s" />
-      <Sphere size="120px" color="radial-gradient(circle, rgba(200,100,255,0.5) 0%, rgba(100,150,255,0.3) 100%)" top="20%" right="10%" animationDelay="0.5s" />
-      <Sphere size="60px" color="radial-gradient(circle, rgba(150,150,255,0.7) 0%, rgba(200,100,200,0.2) 100%)" bottom="15%" right="20%" animationDelay="1.5s" />
-      <Sphere size="200px" color="radial-gradient(circle, rgba(120,80,220,0.4) 0%, rgba(80,120,220,0.1) 100%)" bottom="5%" left="25%" animationDelay="0.2s" />
+      <Sphere size="180px" color="radial-gradient(circle, hsla(275, 70%, 55%, 0.6) 0%, hsla(250, 70%, 40%, 0.1) 100%)" top="5%" left="2%" animationDelay="0s" />
+      <Sphere size="100px" color="radial-gradient(circle, hsla(180, 70%, 60%, 0.5) 0%, hsla(220, 70%, 45%, 0.1) 100%)" top="55%" left="12%" animationDelay="1.2s" />
+      <Sphere size="150px" color="radial-gradient(circle, hsla(310, 65%, 60%, 0.4) 0%, hsla(280, 60%, 40%, 0.1) 100%)" top="15%" right="8%" animationDelay="0.6s" />
+      <Sphere size="70px" color="radial-gradient(circle, hsla(230, 75%, 65%, 0.6) 0%, hsla(300, 60%, 30%, 0.1) 100%)" bottom="10%" right="15%" animationDelay="1.8s" />
+      <Sphere size="220px" color="radial-gradient(circle, hsla(260, 60%, 50%, 0.3) 0%, hsla(240, 50%, 30%, 0.05) 100%)" bottom="2%" left="20%" animationDelay="0.3s" />
       
       <GlassShape className="w-[400px] h-[300px] -rotate-[15deg] top-[15%] left-[calc(50%-350px)] opacity-50" dataAiHint="crystal shard" />
       <GlassShape className="w-[350px] h-[250px] rotate-[20deg] bottom-[20%] right-[calc(50%-300px)] opacity-40" dataAiHint="glass panel" />
@@ -134,22 +134,32 @@ export default function LandingPage() {
       </section>
       <style jsx global>{`
         .landing-page-bg {
-          background-color: #1a0537; /* Deep purple fallback */
-          background-image: 
-            radial-gradient(at 10% 15%, hsla(280, 60%, 30%, 0.45) 0px, transparent 50%),
-            radial-gradient(at 85% 25%, hsla(250, 70%, 40%, 0.35) 0px, transparent 50%),
-            radial-gradient(at 50% 60%, hsla(300, 50%, 25%, 0.3) 0px, transparent 50%),
-            radial-gradient(at 15% 80%, hsla(320, 65%, 35%, 0.4) 0px, transparent 50%),
-            radial-gradient(at 80% 85%, hsla(260, 60%, 30%, 0.45) 0px, transparent 50%),
-            linear-gradient(160deg, #2c0b58 0%, #4a00e0 30%, #6d23b6 70%, #1a0537 100%);
-          background-blend-mode: screen;
+          background-color: #0d051f; /* Darker, more saturated purple base */
+          background-image:
+            /* Softer, larger radial gradients for aurora effect */
+            radial-gradient(ellipse at 10% 20%, hsla(280, 80%, 35%, 0.35) 0px, transparent 60%),
+            radial-gradient(ellipse at 85% 30%, hsla(250, 75%, 45%, 0.3) 0px, transparent 65%),
+            radial-gradient(ellipse at 50% 70%, hsla(300, 70%, 30%, 0.25) 0px, transparent 70%),
+            radial-gradient(ellipse at 20% 85%, hsla(320, 75%, 40%, 0.3) 0px, transparent 60%),
+            radial-gradient(ellipse at 75% 90%, hsla(260, 80%, 35%, 0.35) 0px, transparent 65%),
+            /* Base linear gradient for depth */
+            linear-gradient(170deg, hsla(260, 45%, 15%, 1) 0%, hsla(280,50%,20%,1) 30%, hsla(300,55%,25%,1) 70%, hsla(270,40%,10%,1) 100%);
+          background-blend-mode: screen; /* Screen blend mode creates luminous effects */
         }
-        @keyframes pulse {
-          0%, 100% { opacity: 0.5; transform: scale(1); }
-          50% { opacity: 0.7; transform: scale(1.05); }
+        @keyframes pulse { /* Renamed to soft-glow-pulse for clarity if needed elsewhere, but will override existing */
+          0%, 100% { 
+            opacity: 0.3; 
+            transform: scale(0.98); 
+            filter: blur(5px); 
+          }
+          50% { 
+            opacity: 0.6; 
+            transform: scale(1.02); 
+            filter: blur(3px); 
+          }
         }
-        .animate-pulse {
-          animation: pulse 6s infinite ease-in-out;
+        .animate-pulse { /* This targets the Tailwind class used on Spheres */
+          animation: pulse 7s infinite ease-in-out;
         }
       `}</style>
     </div>
