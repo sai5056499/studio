@@ -16,7 +16,7 @@ import { AppLogo } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { 
-  LayoutDashboard, // Changed from MessageSquare for the root path
+  LayoutDashboard, 
   ListChecks, 
   History, 
   LogOut, 
@@ -25,13 +25,13 @@ import {
   Languages, 
   ScanText, 
   FileQuestion,
-  Zap,          // Kept for Habits
-  BarChart3,    // Kept for Analytics
-  MessageSquare // Added for a potential dedicated chat page later if needed, or remove if / is always dashboard+chat
+  Zap,         
+  BarChart3,   
+  MessageSquare
 } from "lucide-react";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard }, // Root is now Dashboard
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }, // Updated to /dashboard
   { href: "/writer", label: "AI Writer", icon: PenSquare },
   { href: "/translate", label: "Translate", icon: Languages },
   { href: "/ocr", label: "OCR", icon: ScanText },
