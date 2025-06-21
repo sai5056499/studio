@@ -3,6 +3,7 @@ import type { SummarizePageContentOutput } from "@/ai/flows/summarize-page-conte
 import type { ImprovePageContentOutput } from "@/ai/flows/improve-page-content";
 // Import the AI output type directly to ensure consistency
 import type { AiPoweredTaskPlanningOutput as AiTaskOutput } from "@/ai/flows/ai-powered-task-planning";
+import type { LucideIcon } from "lucide-react";
 
 export interface ChatMessage {
   id: string;
@@ -63,4 +64,11 @@ export type HabitFormData = {
   name: string;
   iconName: string;
   goal: number;
+};
+
+// Navigation Types
+export type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
 };

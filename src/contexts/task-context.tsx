@@ -62,28 +62,35 @@ const validateAndMigrateTasks = (savedData: any): PlannedTask[] => {
 
 
 export function TaskProvider({ children }: { children: ReactNode }) {
-  const [plannedTasks, setPlannedTasks] = useState<PlannedTask[]>(() => {
+  const [plannedTasks, setPlannedTasks] = useState<PlannedTask[]>([]);
+  const [isLoading, setIsLoading] = useState(true); // Start with true to indicate loading
+  
+  // Load tasks from localStorage on mount
+  useEffect(() => {
+    setIsLoading(true);
     if (typeof window !== "undefined") {
       const savedTasksJson = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (savedTasksJson) {
         try {
           const parsedData = JSON.parse(savedTasksJson);
-          return validateAndMigrateTasks(parsedData);
+          setPlannedTasks(validateAndMigrateTasks(parsedData));
         } catch (error) {
           console.error("Error parsing or migrating tasks from localStorage:", error);
-          return [];
+          setPlannedTasks([]);
         }
       }
     }
-    return [];
-  });
-  const [isLoading, setIsLoading] = useState(false);
+    setIsLoading(false); // Set loading to false after attempting to load
+  }, []);
 
+  // Save tasks to localStorage whenever they change
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    // We only save to localStorage if the initial load is complete.
+    // This prevents wiping out stored data on the very first render.
+    if (!isLoading) {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(plannedTasks));
     }
-  }, [plannedTasks]);
+  }, [plannedTasks, isLoading]);
 
   const addPlannedTask = useCallback((task: PlannedTask) => {
     setPlannedTasks((prevTasks) => [task, ...prevTasks].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));

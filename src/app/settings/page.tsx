@@ -11,9 +11,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Monitor, Moon, Sun, Bell, Save, Send } from "lucide-react";
+import { Monitor, Moon, Sun, Bell, Save, Send, ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
 import { sendEmail } from "@/services/email-service";
-import type { PlannedTask, Habit } from "@/lib/types";
+import type { PlannedTask, Habit, NavItem } from "@/lib/types";
+import { defaultNavItems, SIDEBAR_ORDER_STORAGE_KEY } from "@/lib/nav-config";
 
 // Types for settings
 type Theme = "light" | "dark" | "system";
@@ -73,15 +74,18 @@ export default function SettingsPage() {
 
   // Unified state for all settings
   const [settings, setSettings] = React.useState<AppSettings>(defaultSettings);
+  
+  const [sidebarItems, setSidebarItems] = React.useState<NavItem[]>(defaultNavItems);
+  const [isSavingOrder, setIsSavingOrder] = React.useState(false);
 
-  // Load settings from localStorage on mount
+  // Load settings and sidebar order from localStorage on mount
   React.useEffect(() => {
+    // Load general settings
     const savedSettingsJson = localStorage.getItem(SETTINGS_STORAGE_KEY);
     let loadedSettings: AppSettings = defaultSettings;
     if (savedSettingsJson) {
       try {
         const savedSettings = JSON.parse(savedSettingsJson);
-        // Deep merge to handle cases where new settings keys are added
         loadedSettings = {
           ...defaultSettings,
           ...savedSettings,
@@ -91,11 +95,33 @@ export default function SettingsPage() {
         };
       } catch (error) {
         console.error("Failed to parse settings from localStorage", error);
-        // Fallback to default settings if parsing fails
       }
     }
     setSettings(loadedSettings);
     applyTheme(loadedSettings.theme);
+    
+    // Load sidebar order
+    const savedOrderJson = localStorage.getItem(SIDEBAR_ORDER_STORAGE_KEY);
+    if (savedOrderJson) {
+      try {
+        const savedOrder: string[] = JSON.parse(savedOrderJson);
+        const itemMap = new Map(defaultNavItems.map(item => [item.href, item]));
+        const newOrderedItems = savedOrder
+          .map(href => itemMap.get(href))
+          .filter((item): item is NavItem => !!item);
+          
+        defaultNavItems.forEach(item => {
+            if(!newOrderedItems.find(i => i.href === item.href)) {
+                newOrderedItems.push(item);
+            }
+        });
+
+        setSidebarItems(newOrderedItems);
+      } catch (e) {
+        setSidebarItems(defaultNavItems);
+      }
+    }
+
     setMounted(true);
   }, []);
   
@@ -178,7 +204,6 @@ export default function SettingsPage() {
     setIsSendingTest(true);
     let emailBody = "<h1>Your Content Ally Daily Summary</h1>";
 
-    // Get Tasks
     const tasksJson = localStorage.getItem(TASKS_STORAGE_KEY);
     const tasks: PlannedTask[] = tasksJson ? JSON.parse(tasksJson) : [];
     const activeTasks = tasks.filter(t => t.status !== 'completed');
@@ -192,7 +217,6 @@ export default function SettingsPage() {
       emailBody += "<p>No active tasks today. Great job or great time to plan!</p>";
     }
 
-    // Get Habits
     const habitsJson = localStorage.getItem(HABITS_STORAGE_KEY);
     const habits: Habit[] = habitsJson ? JSON.parse(habitsJson) : [];
     if (habits.length > 0) {
@@ -226,6 +250,36 @@ export default function SettingsPage() {
     }
   };
 
+  const moveItem = (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= sidebarItems.length) return;
+
+    const newItems = [...sidebarItems];
+    const [movedItem] = newItems.splice(index, 1);
+    newItems.splice(newIndex, 0, movedItem);
+    setSidebarItems(newItems);
+  };
+
+  const handleSaveOrder = async () => {
+      setIsSavingOrder(true);
+      const orderToSave = sidebarItems.map(item => item.href);
+      localStorage.setItem(SIDEBAR_ORDER_STORAGE_KEY, JSON.stringify(orderToSave));
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setIsSavingOrder(false);
+      toast({
+          title: "Sidebar Order Saved",
+          description: "The new sidebar order will be applied on the next page refresh.",
+      });
+  };
+
+  const handleResetOrder = () => {
+      localStorage.removeItem(SIDEBAR_ORDER_STORAGE_KEY);
+      setSidebarItems(defaultNavItems);
+      toast({
+          title: "Sidebar Order Reset",
+          description: "The sidebar order has been reset to default.",
+      });
+  };
 
   if (!mounted) {
     return (
@@ -243,11 +297,12 @@ export default function SettingsPage() {
       <AppHeader title="Settings" />
       <main className="flex-1 overflow-y-auto p-4 md:p-6">
         <Tabs defaultValue="theme" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 md:max-w-xl mx-auto">
+          <TabsList className="grid w-full grid-cols-5 md:max-w-xl mx-auto">
             <TabsTrigger value="theme">Theme</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="account">Account</TabsTrigger>
             <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="reorder">Reorder Pages</TabsTrigger>
           </TabsList>
 
           <TabsContent value="theme">
@@ -434,7 +489,7 @@ export default function SettingsPage() {
                     onCheckedChange={(checked) => {
                       const updatedSettings = {...settings, general: {...settings.general, allNotifications: checked}};
                       setSettings(updatedSettings);
-                      handleSaveSettings(updatedSettings, false); // Save without showing toast for every toggle
+                      handleSaveSettings(updatedSettings, false);
                     }}
                   />
                 </div>
@@ -451,13 +506,52 @@ export default function SettingsPage() {
                     onCheckedChange={(checked) => {
                       const updatedSettings = {...settings, general: {...settings.general, autocorrect: checked}};
                       setSettings(updatedSettings);
-                      handleSaveSettings(updatedSettings, false); // Save without showing toast
+                      handleSaveSettings(updatedSettings, false);
                     }}
                   />
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="reorder">
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Reorder Sidebar Pages</CardTitle>
+                <CardDescription>
+                  Click the arrows to change the order of pages in the main sidebar navigation.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 rounded-md border p-4">
+                  {sidebarItems.map((item, index) => (
+                    <li key={item.href} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                      <span className="font-medium">{item.label}</span>
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => moveItem(index, 'up')} disabled={index === 0}>
+                          <ArrowUp className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => moveItem(index, 'down')} disabled={index === sidebarItems.length - 1}>
+                          <ArrowDown className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+              <CardFooter className="gap-2">
+                <Button onClick={handleSaveOrder} disabled={isSavingOrder}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {isSavingOrder ? "Saving..." : "Save Order"}
+                </Button>
+                <Button variant="outline" onClick={handleResetOrder}>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Reset to Default
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+
         </Tabs>
       </main>
     </div>

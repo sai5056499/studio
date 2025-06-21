@@ -1,6 +1,7 @@
 
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,37 +14,50 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { AppLogo } from "@/components/icons";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { 
-  LayoutDashboard, 
-  ListChecks, 
-  History, 
-  LogOut, 
-  Settings, 
-  PenSquare, 
-  Languages, 
-  ScanText, 
-  FileQuestion,
-  Zap,         
-  BarChart3,   
-  MessageSquare
-} from "lucide-react";
+import { LogOut } from "lucide-react";
+import { defaultNavItems, bottomNavItems, SIDEBAR_ORDER_STORAGE_KEY, type NavItem } from "@/lib/nav-config";
 
-const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/writer", label: "AI Writer", icon: PenSquare },
-  { href: "/translate", label: "Translate", icon: Languages },
-  { href: "/ocr", label: "OCR", icon: ScanText },
-  { href: "/chat-pdf", label: "Chat PDF", icon: FileQuestion },
-  { href: "/planning", label: "Task Planning", icon: ListChecks },
-  { href: "/habits", label: "Habits", icon: Zap }, 
-  { href: "/analytics", label: "Analytics", icon: BarChart3 }, 
-  { href: "/history", label: "Chat History", icon: History },
-];
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const [orderedNavItems, setOrderedNavItems] = React.useState(defaultNavItems);
+
+  React.useEffect(() => {
+    const savedOrderJson = localStorage.getItem(SIDEBAR_ORDER_STORAGE_KEY);
+    if (savedOrderJson) {
+      try {
+        const savedOrder: string[] = JSON.parse(savedOrderJson);
+        const itemMap = new Map(defaultNavItems.map(item => [item.href, item]));
+        const newOrderedItems = savedOrder
+          .map(href => itemMap.get(href))
+          .filter((item): item is NavItem => !!item);
+        
+        defaultNavItems.forEach(item => {
+            if(!newOrderedItems.find(i => i.href === item.href)) {
+                newOrderedItems.push(item);
+            }
+        });
+
+        setOrderedNavItems(newOrderedItems);
+      } catch (e) {
+        console.error("Failed to parse sidebar order from localStorage", e);
+        setOrderedNavItems(defaultNavItems);
+      }
+    }
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === SIDEBAR_ORDER_STORAGE_KEY) {
+        // A simple reload is the easiest way to ensure all components get the new order
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
@@ -59,7 +73,7 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent className="flex-1 overflow-y-auto">
         <SidebarMenu className="p-2">
-          {navItems.map((item) => (
+          {orderedNavItems.map((item) => (
             <SidebarMenuItem key={item.href}>
               <Link href={item.href} legacyBehavior passHref>
                 <SidebarMenuButton
@@ -81,21 +95,23 @@ export function AppSidebar() {
       <Separator className="my-0 bg-sidebar-border" />
       <SidebarFooter className="p-2">
         <SidebarMenu>
-          <SidebarMenuItem>
-            <Link href="/settings" legacyBehavior passHref>
-              <SidebarMenuButton
-                asChild
-                isActive={pathname === "/settings"}
-                tooltip={{ children: "Settings", side: "right" }}
-                className="justify-start"
-              >
-                <a>
-                  <Settings className="h-5 w-5" />
-                  <span>Settings</span>
-                </a>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
+          {bottomNavItems.map((item) => (
+             <SidebarMenuItem key={item.href}>
+              <Link href={item.href} legacyBehavior passHref>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === item.href}
+                  tooltip={{ children: item.label, side: "right" }}
+                  className="justify-start"
+                >
+                  <a>
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.label}</span>
+                  </a>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          ))}
           <SidebarMenuItem>
              <SidebarMenuButton 
               tooltip={{ children: "Logout", side: "right" }}
