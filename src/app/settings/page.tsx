@@ -15,6 +15,7 @@ import { Monitor, Moon, Sun, Bell, Save, Send } from "lucide-react";
 import { sendEmail } from "@/services/email-service";
 import type { PlannedTask, Habit } from "@/lib/types";
 
+// Types for settings
 type Theme = "light" | "dark" | "system";
 
 interface NotificationSettings {
@@ -24,50 +25,77 @@ interface NotificationSettings {
   aiSuggestions: boolean;
 }
 
+interface AccountSettings {
+  username: string;
+  email: string;
+}
+
+interface GeneralSettings {
+  allNotifications: boolean;
+  autocorrect: boolean;
+}
+
+interface AppSettings {
+  theme: Theme;
+  notifications: NotificationSettings;
+  account: AccountSettings;
+  general: GeneralSettings;
+}
+
 const SETTINGS_STORAGE_KEY = "contentAllySettings";
 const TASKS_STORAGE_KEY = "contentAllyTasks";
 const HABITS_STORAGE_KEY = "contentAllyHabits";
 
-export default function SettingsPage() {
-  const { toast } = useToast();
-  const [mounted, setMounted] = React.useState(false);
-  const [isSendingTest, setIsSendingTest] = React.useState(false);
-
-  // Theme settings state
-  const [currentTheme, setCurrentTheme] = React.useState<Theme>("system");
-
-  // Notification settings state
-  const [notificationSettings, setNotificationSettings] = React.useState<NotificationSettings>({
+const defaultSettings: AppSettings = {
+  theme: "system",
+  notifications: {
     email: "",
     taskReminders: true,
     habitStreaks: true,
     aiSuggestions: false,
-  });
+  },
+  account: {
+    username: "User123",
+    email: "",
+  },
+  general: {
+    allNotifications: true,
+    autocorrect: true,
+  }
+};
+
+
+export default function SettingsPage() {
+  const { toast } = useToast();
+  const [mounted, setMounted] = React.useState(false);
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [isSendingTest, setIsSendingTest] = React.useState(false);
+
+  // Unified state for all settings
+  const [settings, setSettings] = React.useState<AppSettings>(defaultSettings);
 
   // Load settings from localStorage on mount
   React.useEffect(() => {
     const savedSettingsJson = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    let loadedSettings: AppSettings = defaultSettings;
     if (savedSettingsJson) {
       try {
         const savedSettings = JSON.parse(savedSettingsJson);
-        // Load theme
-        if (savedSettings.theme) {
-          applyTheme(savedSettings.theme);
-          setCurrentTheme(savedSettings.theme);
-        } else {
-          applyTheme("system");
-        }
-        // Load notification settings
-        if (savedSettings.notifications) {
-          setNotificationSettings(savedSettings.notifications);
-        }
+        // Deep merge to handle cases where new settings keys are added
+        loadedSettings = {
+          ...defaultSettings,
+          ...savedSettings,
+          notifications: { ...defaultSettings.notifications, ...savedSettings.notifications },
+          account: { ...defaultSettings.account, ...savedSettings.account },
+          general: { ...defaultSettings.general, ...savedSettings.general },
+        };
       } catch (error) {
         console.error("Failed to parse settings from localStorage", error);
-        applyTheme("system");
+        // Fallback to default settings if parsing fails
       }
-    } else {
-      applyTheme("system");
     }
+    setSettings(loadedSettings);
+    applyTheme(loadedSettings.theme);
     setMounted(true);
   }, []);
   
@@ -76,7 +104,7 @@ export default function SettingsPage() {
     if (!mounted) return;
 
     const handleSystemThemeChange = (e: MediaQueryListEvent) => {
-      if (localStorage.getItem(SETTINGS_STORAGE_KEY) && JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)!).theme === 'system') {
+      if (settings.theme === 'system') {
         if (e.matches) {
           document.documentElement.classList.add("dark");
         } else {
@@ -91,7 +119,7 @@ export default function SettingsPage() {
     return () => {
       systemThemeDark.removeEventListener("change", handleSystemThemeChange);
     };
-  }, [mounted]);
+  }, [mounted, settings.theme]);
 
 
   const applyTheme = (theme: Theme) => {
@@ -108,47 +136,37 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSettingsChange = (newSettings: Partial<AppSettings>) => {
+    const updatedSettings = { ...settings, ...newSettings };
+    setSettings(updatedSettings);
+    return updatedSettings;
+  }
+
+  const handleSaveSettings = async (updatedSettings: AppSettings, showToast: boolean = true) => {
+    setIsSaving(true);
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(updatedSettings));
+    await new Promise(resolve => setTimeout(resolve, 300)); // Simulate async save
+    setIsSaving(false);
+    if (showToast) {
+      toast({
+        title: "Settings Saved",
+        description: "Your preferences have been updated.",
+      });
+    }
+  };
+
   const handleThemeChange = (newTheme: Theme) => {
-    setCurrentTheme(newTheme);
     applyTheme(newTheme);
-    saveSettings({ theme: newTheme, notifications: notificationSettings });
+    const updatedSettings = handleSettingsChange({ theme: newTheme });
+    handleSaveSettings(updatedSettings, false); // No toast for theme change, it's instant
     toast({
       title: "Theme Updated",
       description: `Theme set to ${newTheme.charAt(0).toUpperCase() + newTheme.slice(1)}.`,
     });
   };
-
-  const handleNotificationSettingChange = (key: keyof NotificationSettings, value: string | boolean) => {
-    setNotificationSettings(prev => ({ ...prev, [key]: value }));
-  };
-
-  const saveSettings = (settingsToSave: { theme: Theme; notifications: NotificationSettings }) => {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settingsToSave));
-  };
-
-  const handleSaveNotificationSettings = async () => {
-    saveSettings({ theme: currentTheme, notifications: notificationSettings });
-    toast({
-      title: "Settings Saved",
-      description: "Your notification preferences have been updated.",
-    });
-
-    // Example of using the placeholder email service
-    if (notificationSettings.email) {
-      await sendEmail({
-        to: notificationSettings.email,
-        subject: "Content Ally Notification Settings Updated",
-        body: "Your notification settings were successfully updated. This is a test of the email service.",
-      });
-      toast({
-          title: "Test Email Sent (Simulated)",
-          description: "Check the console to see the simulated email details.",
-      })
-    }
-  };
   
   const handleSendTestSummary = async () => {
-    if (!notificationSettings.email) {
+    if (!settings.notifications.email) {
       toast({
         title: "Email Required",
         description: "Please enter your email address in the notification settings first.",
@@ -189,13 +207,13 @@ export default function SettingsPage() {
 
     try {
       await sendEmail({
-        to: notificationSettings.email,
+        to: settings.notifications.email,
         subject: "Your Daily Content Ally Summary",
         body: emailBody,
       });
       toast({
         title: "Test Summary Sent",
-        description: `A summary has been sent to ${notificationSettings.email}. (Check console for simulation)`,
+        description: `A summary has been sent to ${settings.notifications.email}. (Check console for simulation)`,
       });
     } catch (error) {
        toast({
@@ -242,7 +260,7 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <RadioGroup
-                  value={currentTheme}
+                  value={settings.theme}
                   onValueChange={(value) => handleThemeChange(value as Theme)}
                   className="grid grid-cols-1 sm:grid-cols-3 gap-4"
                 >
@@ -275,18 +293,19 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle>Notification Settings</CardTitle>
                 <CardDescription>
-                  Manage how and where you receive notifications.
+                  Manage how and where you receive notifications. Controlled by the master switch in General settings.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Notification Email</Label>
+                  <Label htmlFor="email-notif">Notification Email</Label>
                    <Input 
-                    id="email" 
+                    id="email-notif" 
                     type="email" 
                     placeholder="you@example.com" 
-                    value={notificationSettings.email}
-                    onChange={(e) => handleNotificationSettingChange('email', e.target.value)}
+                    value={settings.notifications.email}
+                    onChange={(e) => setSettings(s => ({...s, notifications: {...s.notifications, email: e.target.value}}))}
+                    disabled={!settings.general.allNotifications}
                   />
                   <p className="text-xs text-muted-foreground">The email address where notifications will be sent.</p>
                 </div>
@@ -299,8 +318,9 @@ export default function SettingsPage() {
                   </div>
                   <Switch 
                     id="task-reminders" 
-                    checked={notificationSettings.taskReminders}
-                    onCheckedChange={(checked) => handleNotificationSettingChange('taskReminders', checked)}
+                    checked={settings.notifications.taskReminders}
+                    onCheckedChange={(checked) => setSettings(s => ({...s, notifications: {...s.notifications, taskReminders: checked}}))}
+                    disabled={!settings.general.allNotifications}
                   />
                 </div>
                 <div className="flex items-center justify-between rounded-lg border p-4">
@@ -312,8 +332,9 @@ export default function SettingsPage() {
                   </div>
                   <Switch 
                     id="habit-streaks" 
-                    checked={notificationSettings.habitStreaks}
-                    onCheckedChange={(checked) => handleNotificationSettingChange('habitStreaks', checked)}
+                    checked={settings.notifications.habitStreaks}
+                    onCheckedChange={(checked) => setSettings(s => ({...s, notifications: {...s.notifications, habitStreaks: checked}}))}
+                    disabled={!settings.general.allNotifications}
                   />
                 </div>
                  <div className="flex items-center justify-between rounded-lg border p-4">
@@ -325,15 +346,16 @@ export default function SettingsPage() {
                   </div>
                   <Switch 
                     id="ai-suggestions" 
-                    checked={notificationSettings.aiSuggestions}
-                    onCheckedChange={(checked) => handleNotificationSettingChange('aiSuggestions', checked)}
+                    checked={settings.notifications.aiSuggestions}
+                    onCheckedChange={(checked) => setSettings(s => ({...s, notifications: {...s.notifications, aiSuggestions: checked}}))}
+                    disabled={!settings.general.allNotifications}
                   />
                 </div>
               </CardContent>
               <CardFooter>
-                 <Button onClick={handleSaveNotificationSettings}>
+                 <Button onClick={() => handleSaveSettings(settings)} disabled={isSaving || !settings.general.allNotifications}>
                     <Save className="mr-2 h-4 w-4" />
-                    Save Notification Settings
+                    {isSaving ? "Saving..." : "Save Notification Settings"}
                  </Button>
               </CardFooter>
             </Card>
@@ -345,7 +367,7 @@ export default function SettingsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button onClick={handleSendTestSummary} disabled={isSendingTest}>
+                <Button onClick={handleSendTestSummary} disabled={isSendingTest || !settings.general.allNotifications}>
                   <Send className="mr-2 h-4 w-4" />
                   {isSendingTest ? "Sending..." : "Send Test Daily Summary"}
                 </Button>
@@ -358,20 +380,35 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle>Account Settings</CardTitle>
                 <CardDescription>
-                  Manage your account details. (These are currently placeholders and not functional).
+                  Manage your account details. Changes are saved locally.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-1">
                   <Label htmlFor="username">Username</Label>
-                  <Input id="username" defaultValue="User123" disabled />
+                  <Input 
+                    id="username" 
+                    value={settings.account.username}
+                    onChange={(e) => setSettings(s => ({...s, account: {...s.account, username: e.target.value}}))}
+                  />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="user@example.com" disabled />
+                  <Label htmlFor="email-account">Email</Label>
+                  <Input 
+                    id="email-account" 
+                    type="email"
+                    placeholder="you@example.com"
+                    value={settings.account.email}
+                    onChange={(e) => setSettings(s => ({...s, account: {...s.account, email: e.target.value}}))}
+                  />
                 </div>
-                <Button disabled>Save Changes</Button>
               </CardContent>
+              <CardFooter>
+                <Button onClick={() => handleSaveSettings(settings)} disabled={isSaving}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {isSaving ? "Saving..." : "Save Account Settings"}
+                </Button>
+              </CardFooter>
             </Card>
           </TabsContent>
 
@@ -380,7 +417,7 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle>General Settings</CardTitle>
                 <CardDescription>
-                  Configure general application preferences. (These are currently placeholders).
+                  Configure general application preferences. Changes save automatically.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -391,16 +428,32 @@ export default function SettingsPage() {
                       A master switch for all application alerts.
                     </p>
                   </div>
-                  <Switch id="notifications-general" disabled />
+                  <Switch 
+                    id="notifications-general" 
+                    checked={settings.general.allNotifications}
+                    onCheckedChange={(checked) => {
+                      const updatedSettings = {...settings, general: {...settings.general, allNotifications: checked}};
+                      setSettings(updatedSettings);
+                      handleSaveSettings(updatedSettings, false); // Save without showing toast for every toggle
+                    }}
+                  />
                 </div>
                  <div className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
-                    <Label htmlFor="autocorrect" className="text-base">Enable Autocorrect</Label>
+                    <Label htmlFor="autocorrect" className="text-base">Enable Autocorrect (Simulated)</Label>
                     <p className="text-sm text-muted-foreground">
                       Automatically correct spelling mistakes in input fields.
                     </p>
                   </div>
-                  <Switch id="autocorrect" defaultChecked disabled />
+                  <Switch 
+                    id="autocorrect" 
+                    checked={settings.general.autocorrect}
+                    onCheckedChange={(checked) => {
+                      const updatedSettings = {...settings, general: {...settings.general, autocorrect: checked}};
+                      setSettings(updatedSettings);
+                      handleSaveSettings(updatedSettings, false); // Save without showing toast
+                    }}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -410,5 +463,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
