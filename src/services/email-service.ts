@@ -9,8 +9,6 @@
  * This service is designed to be called from server-side code (e.g., Genkit flows).
  */
 
-import { Resend } from 'resend';
-
 interface EmailPayload {
   to: string;
   subject: string;
@@ -37,6 +35,8 @@ export async function sendEmail(payload: EmailPayload): Promise<{ success: boole
   // =================================================================================
   
   /*
+  import { Resend } from 'resend';
+
   const resendApiKey = process.env.RESEND_API_KEY;
 
   if (!resendApiKey) {
