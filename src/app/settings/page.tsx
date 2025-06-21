@@ -11,61 +11,86 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Monitor, Moon, Sun, Bell } from "lucide-react";
+import { Monitor, Moon, Sun, Bell, Save } from "lucide-react";
+import { sendEmail } from "@/services/email-service";
 
 type Theme = "light" | "dark" | "system";
 
+interface NotificationSettings {
+  email: string;
+  taskReminders: boolean;
+  habitStreaks: boolean;
+  aiSuggestions: boolean;
+}
+
+const SETTINGS_STORAGE_KEY = "contentAllySettings";
+
 export default function SettingsPage() {
   const { toast } = useToast();
-  const [currentTheme, setCurrentTheme] = React.useState<Theme>("system");
   const [mounted, setMounted] = React.useState(false);
 
+  // Theme settings state
+  const [currentTheme, setCurrentTheme] = React.useState<Theme>("system");
+
+  // Notification settings state
+  const [notificationSettings, setNotificationSettings] = React.useState<NotificationSettings>({
+    email: "",
+    taskReminders: true,
+    habitStreaks: true,
+    aiSuggestions: false,
+  });
+
+  // Load settings from localStorage on mount
   React.useEffect(() => {
-    setMounted(true);
-    const storedTheme = localStorage.getItem("theme") as Theme | null;
-    if (storedTheme) {
-      applyTheme(storedTheme);
-      setCurrentTheme(storedTheme);
+    const savedSettingsJson = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (savedSettingsJson) {
+      try {
+        const savedSettings = JSON.parse(savedSettingsJson);
+        // Load theme
+        if (savedSettings.theme) {
+          applyTheme(savedSettings.theme);
+          setCurrentTheme(savedSettings.theme);
+        } else {
+          applyTheme("system");
+        }
+        // Load notification settings
+        if (savedSettings.notifications) {
+          setNotificationSettings(savedSettings.notifications);
+        }
+      } catch (error) {
+        console.error("Failed to parse settings from localStorage", error);
+        applyTheme("system");
+      }
     } else {
-      applyTheme("system"); // Apply system theme by default if nothing stored
+      applyTheme("system");
     }
+    setMounted(true);
   }, []);
   
+  // Theme change effect
   React.useEffect(() => {
-    if (!mounted) return; // Wait for mount to avoid SSR mismatch for localStorage
+    if (!mounted) return;
 
-    let systemThemeListener: ((this: MediaQueryList, ev: MediaQueryListEvent) => any) | undefined;
-
-    if (currentTheme === "system") {
-      const systemThemeDark = window.matchMedia("(prefers-color-scheme: dark)");
-      if (systemThemeDark.matches) {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
-      systemThemeListener = (e) => {
-        if (currentTheme === "system") { // Re-check in case theme changed
-          if (e.matches) {
-            document.documentElement.classList.add("dark");
-          } else {
-            document.documentElement.classList.remove("dark");
-          }
+    const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+      if (localStorage.getItem(SETTINGS_STORAGE_KEY) && JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)!).theme === 'system') {
+        if (e.matches) {
+          document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.classList.remove("dark");
         }
-      };
-      systemThemeDark.addEventListener("change", systemThemeListener);
-    }
-
-    return () => {
-      if (systemThemeListener) {
-        window.matchMedia("(prefers-color-scheme: dark)").removeEventListener("change", systemThemeListener);
       }
     };
-  }, [currentTheme, mounted]);
+    
+    const systemThemeDark = window.matchMedia("(prefers-color-scheme: dark)");
+    systemThemeDark.addEventListener("change", handleSystemThemeChange);
+
+    return () => {
+      systemThemeDark.removeEventListener("change", handleSystemThemeChange);
+    };
+  }, [mounted]);
 
 
   const applyTheme = (theme: Theme) => {
-    localStorage.setItem("theme", theme);
-    setCurrentTheme(theme); // Update state before manipulating classList
     if (theme === "light") {
       document.documentElement.classList.remove("dark");
     } else if (theme === "dark") {
@@ -80,15 +105,45 @@ export default function SettingsPage() {
   };
 
   const handleThemeChange = (newTheme: Theme) => {
+    setCurrentTheme(newTheme);
     applyTheme(newTheme);
+    saveSettings({ theme: newTheme, notifications: notificationSettings });
     toast({
       title: "Theme Updated",
       description: `Theme set to ${newTheme.charAt(0).toUpperCase() + newTheme.slice(1)}.`,
     });
   };
 
+  const handleNotificationSettingChange = (key: keyof NotificationSettings, value: string | boolean) => {
+    setNotificationSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const saveSettings = (settingsToSave: { theme: Theme; notifications: NotificationSettings }) => {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settingsToSave));
+  };
+
+  const handleSaveNotificationSettings = async () => {
+    saveSettings({ theme: currentTheme, notifications: notificationSettings });
+    toast({
+      title: "Settings Saved",
+      description: "Your notification preferences have been updated.",
+    });
+
+    // Example of using the placeholder email service
+    if (notificationSettings.email) {
+      await sendEmail({
+        to: notificationSettings.email,
+        subject: "Content Ally Notification Settings Updated",
+        body: "Your notification settings were successfully updated. This is a test of the email service.",
+      });
+      toast({
+          title: "Test Email Sent (Simulated)",
+          description: "Check the console to see the simulated email details.",
+      })
+    }
+  };
+
   if (!mounted) {
-    // Render nothing or a SKELETON to avoid hydration mismatch issues with theme
     return (
       <div className="flex h-full flex-col">
         <AppHeader title="Settings" />
@@ -154,10 +209,21 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle>Notification Settings</CardTitle>
                 <CardDescription>
-                  Manage how you receive notifications. (These are currently placeholders and not functional).
+                  Manage how and where you receive notifications.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Notification Email</Label>
+                   <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="you@example.com" 
+                    value={notificationSettings.email}
+                    onChange={(e) => handleNotificationSettingChange('email', e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">The email address where notifications will be sent.</p>
+                </div>
                 <div className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
                     <Label htmlFor="task-reminders" className="text-base">Task Reminders</Label>
@@ -165,7 +231,11 @@ export default function SettingsPage() {
                       Receive notifications for upcoming task deadlines.
                     </p>
                   </div>
-                  <Switch id="task-reminders" disabled defaultChecked />
+                  <Switch 
+                    id="task-reminders" 
+                    checked={notificationSettings.taskReminders}
+                    onCheckedChange={(checked) => handleNotificationSettingChange('taskReminders', checked)}
+                  />
                 </div>
                 <div className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
@@ -174,7 +244,11 @@ export default function SettingsPage() {
                       Get alerts about maintaining or breaking your habit streaks.
                     </p>
                   </div>
-                  <Switch id="habit-streaks" disabled defaultChecked />
+                  <Switch 
+                    id="habit-streaks" 
+                    checked={notificationSettings.habitStreaks}
+                    onCheckedChange={(checked) => handleNotificationSettingChange('habitStreaks', checked)}
+                  />
                 </div>
                  <div className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
@@ -183,9 +257,19 @@ export default function SettingsPage() {
                       Allow AI to proactively send you useful suggestions.
                     </p>
                   </div>
-                  <Switch id="ai-suggestions" disabled />
+                  <Switch 
+                    id="ai-suggestions" 
+                    checked={notificationSettings.aiSuggestions}
+                    onCheckedChange={(checked) => handleNotificationSettingChange('aiSuggestions', checked)}
+                  />
                 </div>
               </CardContent>
+              <CardFooter>
+                 <Button onClick={handleSaveNotificationSettings}>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Notification Settings
+                 </Button>
+              </CardFooter>
             </Card>
           </TabsContent>
 
