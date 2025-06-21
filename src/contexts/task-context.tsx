@@ -124,26 +124,26 @@ export function TaskProvider({ children }: { children: ReactNode }) {
           });
 
           const allSubCompleted = updatedSubTasks.every(st => st.status === "completed");
-          const anySubInProgress = updatedSubTasks.some(st => st.status === "inprogress" || (st.status === 'completed' && updatedSubTasks.length > 0));
+          const noSubStarted = updatedSubTasks.every(st => st.status === "todo");
           
-          let newDailyStatus: TaskStatus = "todo";
+          let newDailyStatus: TaskStatus = "inprogress";
           if (allSubCompleted) {
             newDailyStatus = "completed";
-          } else if (anySubInProgress || updatedSubTasks.some(st => st.status === 'completed')) {
-            newDailyStatus = "inprogress";
+          } else if (noSubStarted) {
+            newDailyStatus = "todo";
           }
           
           return { ...dailyTask, subTasks: updatedSubTasks, status: newDailyStatus };
         });
         
         const allDailyCompleted = updatedDailyTasks.every(dt => dt.status === "completed");
-        const anyDailyInProgress = updatedDailyTasks.some(dt => dt.status === "inprogress" || (dt.status === "completed" && updatedDailyTasks.length > 0));
+        const noDailyStarted = updatedDailyTasks.every(dt => dt.status === "todo");
 
-        let newOverallStatus: TaskStatus = "todo";
+        let newOverallStatus: TaskStatus = "inprogress";
         if (allDailyCompleted) {
           newOverallStatus = "completed";
-        } else if (anyDailyInProgress || updatedDailyTasks.some(dt => dt.status === 'completed')) {
-          newOverallStatus = "inprogress";
+        } else if (noDailyStarted) {
+          newOverallStatus = "todo";
         }
         
         return { ...task, dailyTasks: updatedDailyTasks, status: newOverallStatus };
@@ -156,6 +156,10 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       prevTasks.map(task => {
         if (task.id !== taskId) {
           return task;
+        }
+
+        if (task.status === newStatus) {
+            return task;
         }
 
         const wasCompleted = task.status === 'completed';
