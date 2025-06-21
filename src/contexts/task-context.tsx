@@ -63,72 +63,106 @@ export function TaskProvider({ children }: { children: ReactNode }) {
 
   const toggleSubTaskStatus = useCallback((taskId: string, dailyTaskIndex: number, subTaskIndex: number) => {
     setPlannedTasks(prevTasks => {
-      const taskIndex = prevTasks.findIndex(t => t.id === taskId);
-      if (taskIndex === -1) return prevTasks;
+      // Create a new top-level array
+      return prevTasks.map(task => {
+        // If it's not the task we're looking for, return it as is
+        if (task.id !== taskId) {
+          return task;
+        }
 
-      const newTasks = prevTasks.map(t => ({...t, dailyTasks: t.dailyTasks.map(dt => ({...dt, subTasks: [...dt.subTasks]}))})); // Deep clone relevant parts
-      const taskToUpdate = newTasks[taskIndex];
-      
-      if (!taskToUpdate.dailyTasks[dailyTaskIndex] || !taskToUpdate.dailyTasks[dailyTaskIndex].subTasks[subTaskIndex]) {
-        console.error("SubTask not found for toggling status");
-        return prevTasks; // Or handle error appropriately
-      }
+        // It's our task, create a new task object
+        const updatedTask = {
+          ...task,
+          // Create a new dailyTasks array
+          dailyTasks: task.dailyTasks.map((dailyTask, dIndex) => {
+            // If it's not the daily task we're looking for, return it as is
+            if (dIndex !== dailyTaskIndex) {
+              return dailyTask;
+            }
 
-      const subTask = taskToUpdate.dailyTasks[dailyTaskIndex].subTasks[subTaskIndex];
-      subTask.status = subTask.status === "completed" ? "todo" : "completed";
+            // It's our daily task, create a new daily task object
+            const updatedDailyTask = {
+              ...dailyTask,
+              // Create a new subTasks array
+              subTasks: dailyTask.subTasks.map((subTask, sIndex) => {
+                // If it's not the sub-task, return it
+                if (sIndex !== subTaskIndex) {
+                  return subTask;
+                }
+                // It's our sub-task, create a new one with the toggled status
+                return {
+                  ...subTask,
+                  status: subTask.status === "completed" ? "todo" : "completed",
+                };
+              }),
+            };
 
-      const currentDailyTask = taskToUpdate.dailyTasks[dailyTaskIndex];
-      const allSubTasksCompleted = currentDailyTask.subTasks.every(st => st.status === "completed");
-      const anySubTaskInProgress = currentDailyTask.subTasks.some(st => st.status === "inprogress");
+            // Now, after updating subtasks, recalculate the status of this daily task
+            const allSubTasksCompleted = updatedDailyTask.subTasks.every(st => st.status === "completed");
+            const anySubTaskInProgress = updatedDailyTask.subTasks.some(st => st.status === "inprogress");
+            const anySubTaskDone = updatedDailyTask.subTasks.some(st => st.status === 'completed');
 
-      if (allSubTasksCompleted) {
-        currentDailyTask.status = "completed";
-      } else if (anySubTaskInProgress || currentDailyTask.subTasks.some(st => st.status === "completed")) {
-        currentDailyTask.status = "inprogress";
-      } else {
-        currentDailyTask.status = "todo";
-      }
+            if (allSubTasksCompleted) {
+              updatedDailyTask.status = "completed";
+            } else if (anySubTaskInProgress || anySubTaskDone) {
+              updatedDailyTask.status = "inprogress";
+            } else {
+              updatedDailyTask.status = "todo";
+            }
+            
+            return updatedDailyTask;
+          }),
+        };
+        
+        // Now, after updating daily tasks, recalculate the overall task status
+        const allDailyTasksCompleted = updatedTask.dailyTasks.every(dt => dt.status === "completed");
+        const anyDailyTaskInProgress = updatedTask.dailyTasks.some(dt => dt.status === "inprogress");
+        const anyDailyTaskDone = updatedTask.dailyTasks.some(dt => dt.status === 'completed');
 
-      const allDailyTasksCompleted = taskToUpdate.dailyTasks.every(dt => dt.status === "completed");
-      const anyDailyTaskInProgress = taskToUpdate.dailyTasks.some(dt => dt.status === "inprogress");
+        if (allDailyTasksCompleted) {
+          updatedTask.status = "completed";
+        } else if (anyDailyTaskInProgress || anyDailyTaskDone) {
+          updatedTask.status = "inprogress";
+        } else {
+          updatedTask.status = "todo";
+        }
 
-      if (allDailyTasksCompleted) {
-        taskToUpdate.status = "completed";
-      } else if (anyDailyTaskInProgress || taskToUpdate.dailyTasks.some(dt => dt.status === "completed" || dt.status === "inprogress")) {
-        taskToUpdate.status = "inprogress";
-      } else {
-        taskToUpdate.status = "todo";
-      }
-      
-      return newTasks;
+        return updatedTask;
+      });
     });
   }, []);
 
   const updateTaskStatus = useCallback((taskId: string, newStatus: TaskStatus) => {
-    setPlannedTasks(prevTasks => {
-      const taskIndex = prevTasks.findIndex(t => t.id === taskId);
-      if (taskIndex === -1) return prevTasks;
+    setPlannedTasks(prevTasks =>
+      prevTasks.map(task => {
+        if (task.id !== taskId) {
+          return task;
+        }
 
-      const updatedTasks = prevTasks.map(t => ({...t})); // Shallow clone tasks
-      const taskToUpdate = {...updatedTasks[taskIndex]}; // Clone task to update
-      taskToUpdate.status = newStatus;
+        // It's the task to update.
+        const wasCompleted = task.status === 'completed';
+        const updatedTask = { ...task, status: newStatus };
 
-      if (newStatus === "completed") {
-        taskToUpdate.dailyTasks = taskToUpdate.dailyTasks.map(dt => ({
-          ...dt,
-          status: "completed",
-          subTasks: dt.subTasks.map(st => ({ ...st, status: "completed" })),
-        }));
-      } else if (taskToUpdate.status !== "completed" && updatedTasks[taskIndex].status === "completed") { 
-         taskToUpdate.dailyTasks = taskToUpdate.dailyTasks.map(dt => ({
-          ...dt,
-          status: "todo", 
-          subTasks: dt.subTasks.map(st => ({ ...st, status: "todo" })),
-        }));
-      }
-      updatedTasks[taskIndex] = taskToUpdate;
-      return updatedTasks;
-    });
+        // If marking the whole task as complete, mark all children as complete.
+        if (newStatus === "completed") {
+          updatedTask.dailyTasks = task.dailyTasks.map(dt => ({
+            ...dt,
+            status: "completed",
+            subTasks: dt.subTasks.map(st => ({ ...st, status: "completed" })),
+          }));
+        } 
+        // If reopening a completed task, reset all children to 'todo'.
+        else if (wasCompleted && newStatus !== 'completed') {
+          updatedTask.dailyTasks = task.dailyTasks.map(dt => ({
+            ...dt,
+            status: "todo",
+            subTasks: dt.subTasks.map(st => ({ ...st, status: "todo" })),
+          }));
+        }
+
+        return updatedTask;
+      })
+    );
   }, []);
 
   const toggleDailyReminder = useCallback((taskId: string) => {
