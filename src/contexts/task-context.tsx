@@ -21,18 +21,58 @@ const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY = "contentAllyTasks";
 
+// Data migration and validation function
+const validateAndMigrateTasks = (savedData: any): PlannedTask[] => {
+  if (!Array.isArray(savedData)) {
+    return [];
+  }
+
+  return savedData.map((task: any): PlannedTask => {
+    const validatedDailyTasks = Array.isArray(task.dailyTasks)
+      ? task.dailyTasks.map((dt: any): DailyTask => {
+          const validatedSubTasks = Array.isArray(dt.subTasks)
+            ? dt.subTasks.map((st: any): SubTask => ({
+                id: st.id || `sub-${dt.id || Math.random()}-${Date.now()}`,
+                description: st.description || "Untitled Sub-task",
+                status: st.status || "todo",
+              }))
+            : [];
+          return {
+            id: dt.id || `daily-${task.id || Math.random()}-${Date.now()}`,
+            dayDescription: dt.dayDescription || "Untitled Day",
+            subTasks: validatedSubTasks,
+            status: dt.status || "todo",
+          };
+        })
+      : [];
+
+    return {
+      id: task.id || `task-${Date.now()}`,
+      taskName: task.taskName || "Untitled Task",
+      originalDescription: task.originalDescription || "",
+      deadline: task.deadline || "No deadline set",
+      createdAt: new Date(task.createdAt || Date.now()),
+      isDailyReminderSet: task.isDailyReminderSet || false,
+      status: task.status || "todo",
+      overallReminder: task.overallReminder || "",
+      dailyTasks: validatedDailyTasks,
+    };
+  });
+};
+
+
 export function TaskProvider({ children }: { children: ReactNode }) {
   const [plannedTasks, setPlannedTasks] = useState<PlannedTask[]>(() => {
     if (typeof window !== "undefined") {
-      const savedTasks = localStorage.getItem(LOCAL_STORAGE_KEY);
-      try {
-        return savedTasks ? JSON.parse(savedTasks).map((task: any) => ({
-          ...task,
-          createdAt: new Date(task.createdAt) // Ensure dates are Date objects
-        })) : [];
-      } catch (error) {
-        console.error("Error parsing tasks from localStorage:", error);
-        return [];
+      const savedTasksJson = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (savedTasksJson) {
+        try {
+          const parsedData = JSON.parse(savedTasksJson);
+          return validateAndMigrateTasks(parsedData);
+        } catch (error) {
+          console.error("Error parsing or migrating tasks from localStorage:", error);
+          return [];
+        }
       }
     }
     return [];
@@ -63,71 +103,50 @@ export function TaskProvider({ children }: { children: ReactNode }) {
 
   const toggleSubTaskStatus = useCallback((taskId: string, dailyTaskIndex: number, subTaskIndex: number) => {
     setPlannedTasks(prevTasks => {
-      // Create a new top-level array
       return prevTasks.map(task => {
-        // If it's not the task we're looking for, return it as is
         if (task.id !== taskId) {
           return task;
         }
 
-        // It's our task, create a new task object
-        const updatedTask = {
-          ...task,
-          // Create a new dailyTasks array
-          dailyTasks: task.dailyTasks.map((dailyTask, dIndex) => {
-            // If it's not the daily task we're looking for, return it as is
-            if (dIndex !== dailyTaskIndex) {
-              return dailyTask;
-            }
+        const updatedDailyTasks = task.dailyTasks.map((dailyTask, dIndex) => {
+          if (dIndex !== dailyTaskIndex) {
+            return dailyTask;
+          }
 
-            // It's our daily task, create a new daily task object
-            const updatedDailyTask = {
-              ...dailyTask,
-              // Create a new subTasks array
-              subTasks: dailyTask.subTasks.map((subTask, sIndex) => {
-                // If it's not the sub-task, return it
-                if (sIndex !== subTaskIndex) {
-                  return subTask;
-                }
-                // It's our sub-task, create a new one with the toggled status
-                return {
-                  ...subTask,
-                  status: subTask.status === "completed" ? "todo" : "completed",
-                };
-              }),
+          const updatedSubTasks = dailyTask.subTasks.map((subTask, sIndex) => {
+            if (sIndex !== subTaskIndex) {
+              return subTask;
+            }
+            return {
+              ...subTask,
+              status: subTask.status === "completed" ? "todo" : "completed",
             };
+          });
 
-            // Now, after updating subtasks, recalculate the status of this daily task
-            const allSubTasksCompleted = updatedDailyTask.subTasks.every(st => st.status === "completed");
-            const anySubTaskInProgress = updatedDailyTask.subTasks.some(st => st.status === "inprogress");
-            const anySubTaskDone = updatedDailyTask.subTasks.some(st => st.status === 'completed');
-
-            if (allSubTasksCompleted) {
-              updatedDailyTask.status = "completed";
-            } else if (anySubTaskInProgress || anySubTaskDone) {
-              updatedDailyTask.status = "inprogress";
-            } else {
-              updatedDailyTask.status = "todo";
-            }
-            
-            return updatedDailyTask;
-          }),
-        };
+          const allSubCompleted = updatedSubTasks.every(st => st.status === "completed");
+          const anySubInProgress = updatedSubTasks.some(st => st.status === "inprogress" || (st.status === 'completed' && updatedSubTasks.length > 0));
+          
+          let newDailyStatus: TaskStatus = "todo";
+          if (allSubCompleted) {
+            newDailyStatus = "completed";
+          } else if (anySubInProgress || updatedSubTasks.some(st => st.status === 'completed')) {
+            newDailyStatus = "inprogress";
+          }
+          
+          return { ...dailyTask, subTasks: updatedSubTasks, status: newDailyStatus };
+        });
         
-        // Now, after updating daily tasks, recalculate the overall task status
-        const allDailyTasksCompleted = updatedTask.dailyTasks.every(dt => dt.status === "completed");
-        const anyDailyTaskInProgress = updatedTask.dailyTasks.some(dt => dt.status === "inprogress");
-        const anyDailyTaskDone = updatedTask.dailyTasks.some(dt => dt.status === 'completed');
+        const allDailyCompleted = updatedDailyTasks.every(dt => dt.status === "completed");
+        const anyDailyInProgress = updatedDailyTasks.some(dt => dt.status === "inprogress" || (dt.status === "completed" && updatedDailyTasks.length > 0));
 
-        if (allDailyTasksCompleted) {
-          updatedTask.status = "completed";
-        } else if (anyDailyTaskInProgress || anyDailyTaskDone) {
-          updatedTask.status = "inprogress";
-        } else {
-          updatedTask.status = "todo";
+        let newOverallStatus: TaskStatus = "todo";
+        if (allDailyCompleted) {
+          newOverallStatus = "completed";
+        } else if (anyDailyInProgress || updatedDailyTasks.some(dt => dt.status === 'completed')) {
+          newOverallStatus = "inprogress";
         }
-
-        return updatedTask;
+        
+        return { ...task, dailyTasks: updatedDailyTasks, status: newOverallStatus };
       });
     });
   }, []);
@@ -139,11 +158,9 @@ export function TaskProvider({ children }: { children: ReactNode }) {
           return task;
         }
 
-        // It's the task to update.
         const wasCompleted = task.status === 'completed';
         const updatedTask = { ...task, status: newStatus };
 
-        // If marking the whole task as complete, mark all children as complete.
         if (newStatus === "completed") {
           updatedTask.dailyTasks = task.dailyTasks.map(dt => ({
             ...dt,
@@ -151,7 +168,6 @@ export function TaskProvider({ children }: { children: ReactNode }) {
             subTasks: dt.subTasks.map(st => ({ ...st, status: "completed" })),
           }));
         } 
-        // If reopening a completed task, reset all children to 'todo'.
         else if (wasCompleted && newStatus !== 'completed') {
           updatedTask.dailyTasks = task.dailyTasks.map(dt => ({
             ...dt,
