@@ -21,75 +21,63 @@ interface EmailPayload {
  * @param {EmailPayload} payload - The email details.
  * @returns {Promise<{ success: boolean; message: string }>} - The result of the operation.
  */
-export async function sendEmail(payload: EmailPayload): Promise<{ success: boolean; message: string }> {
+export async function sendEmail(payload: EmailPayload): Promise<{ success: boolean; message:string }> {
 
-  // =================================================================================
-  // REAL EMAIL IMPLEMENTATION (using Resend)
-  // =================================================================================
-  //
-  // UNCOMMENT THE CODE BLOCK BELOW AND ADD YOUR RESEND_API_KEY to the .env file
-  // to enable real email sending.
-  //
-  // You can sign up for a free account at https://resend.com
-  // 
-  // =================================================================================
-  
-  /*
-  import { Resend } from 'resend';
+  // To enable real email sending, set this to true and add RESEND_API_KEY to your .env file
+  const USE_REAL_EMAIL_SERVICE = false;
 
-  const resendApiKey = process.env.RESEND_API_KEY;
+  if (USE_REAL_EMAIL_SERVICE) {
+    // =================================================================================
+    // REAL EMAIL IMPLEMENTATION (using Resend)
+    // =================================================================================
+    try {
+      const { Resend } = await import('resend');
+      const resendApiKey = process.env.RESEND_API_KEY;
 
-  if (!resendApiKey) {
-    console.error("Resend API key is not set in environment variables.");
-    return { success: false, message: "Server is not configured for sending emails." };
-  }
+      if (!resendApiKey) {
+        console.error("Resend API key is not set in environment variables.");
+        return { success: false, message: "Server is not configured for sending emails." };
+      }
 
-  const resend = new Resend(resendApiKey);
+      const resend = new Resend(resendApiKey);
+      
+      const { data, error } = await resend.emails.send({
+        from: 'Content Ally <onboarding@resend.dev>', // See docs to use a custom domain
+        to: [payload.to],
+        subject: payload.subject,
+        html: payload.body,
+      });
 
-  try {
-    const { data, error } = await resend.emails.send({
-      from: 'Content Ally <onboarding@resend.dev>', // See docs to use a custom domain
-      to: [payload.to],
-      subject: payload.subject,
-      html: payload.body,
-    });
+      if (error) {
+        console.error("Resend API Error:", error);
+        return { success: false, message: `Failed to send email: ${error.message}` };
+      }
 
-    if (error) {
-      console.error("Resend API Error:", error);
-      return { success: false, message: `Failed to send email: ${error.message}` };
+      console.log("Email sent successfully via Resend:", data);
+      return { success: true, message: "Email sent successfully." };
+
+    } catch (exception) {
+      console.error("Exception occurred while sending email:", exception);
+      const message = exception instanceof Error ? exception.message : "An unknown error occurred.";
+      return { success: false, message };
     }
+  } else {
+    // =================================================================================
+    // SIMULATED EMAIL SENDING (Placeholder)
+    // =================================================================================
+    console.log("===================================");
+    console.log("== SIMULATING EMAIL SENDING... ==");
+    console.log("===================================");
+    console.log(`Recipient: ${payload.to}`);
+    console.log(`Subject: ${payload.subject}`);
+    console.log("Body (HTML):");
+    console.log(payload.body);
+    console.log("===================================");
+    console.log("To send a real email, edit src/services/email-service.ts and add your API key to .env");
 
-    console.log("Email sent successfully via Resend:", data);
-    return { success: true, message: "Email sent successfully." };
-
-  } catch (exception) {
-    console.error("Exception occurred while sending email:", exception);
-    const message = exception instanceof Error ? exception.message : "An unknown error occurred.";
-    return { success: false, message };
+    return {
+      success: true,
+      message: "Email sent successfully (simulated). Check the server console.",
+    };
   }
-  */
-
-  // =================================================================================
-  // SIMULATED EMAIL SENDING (Placeholder)
-  // =================================================================================
-  //
-  // This block will be used if the Resend implementation above is commented out.
-  // It logs the email to the console instead of sending it.
-  //
-  // =================================================================================
-
-  console.log("===================================");
-  console.log("== SIMULATING EMAIL SENDING... ==");
-  console.log("===================================");
-  console.log(`Recipient: ${payload.to}`);
-  console.log(`Subject: ${payload.subject}`);
-  console.log("Body (HTML):");
-  console.log(payload.body);
-  console.log("===================================");
-  console.log("To send a real email, uncomment the Resend block in src/services/email-service.ts and add your API key to .env");
-
-  return {
-    success: true,
-    message: "Email sent successfully (simulated). Check the server console.",
-  };
 }
