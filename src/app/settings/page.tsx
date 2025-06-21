@@ -11,8 +11,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Monitor, Moon, Sun, Bell, Save } from "lucide-react";
+import { Monitor, Moon, Sun, Bell, Save, Send } from "lucide-react";
 import { sendEmail } from "@/services/email-service";
+import type { PlannedTask, Habit } from "@/lib/types";
 
 type Theme = "light" | "dark" | "system";
 
@@ -24,10 +25,13 @@ interface NotificationSettings {
 }
 
 const SETTINGS_STORAGE_KEY = "contentAllySettings";
+const TASKS_STORAGE_KEY = "contentAllyTasks";
+const HABITS_STORAGE_KEY = "contentAllyHabits";
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const [mounted, setMounted] = React.useState(false);
+  const [isSendingTest, setIsSendingTest] = React.useState(false);
 
   // Theme settings state
   const [currentTheme, setCurrentTheme] = React.useState<Theme>("system");
@@ -142,6 +146,68 @@ export default function SettingsPage() {
       })
     }
   };
+  
+  const handleSendTestSummary = async () => {
+    if (!notificationSettings.email) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address in the notification settings first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSendingTest(true);
+    let emailBody = "<h1>Your Content Ally Daily Summary</h1>";
+
+    // Get Tasks
+    const tasksJson = localStorage.getItem(TASKS_STORAGE_KEY);
+    const tasks: PlannedTask[] = tasksJson ? JSON.parse(tasksJson) : [];
+    const activeTasks = tasks.filter(t => t.status !== 'completed');
+    if (activeTasks.length > 0) {
+      emailBody += "<h2>Active Tasks:</h2><ul>";
+      activeTasks.forEach(task => {
+        emailBody += `<li><strong>${task.taskName}</strong> (Status: ${task.status})</li>`;
+      });
+      emailBody += "</ul>";
+    } else {
+      emailBody += "<p>No active tasks today. Great job or great time to plan!</p>";
+    }
+
+    // Get Habits
+    const habitsJson = localStorage.getItem(HABITS_STORAGE_KEY);
+    const habits: Habit[] = habitsJson ? JSON.parse(habitsJson) : [];
+    if (habits.length > 0) {
+      emailBody += "<h2>Habit Progress:</h2><ul>";
+      habits.forEach(habit => {
+        emailBody += `<li><strong>${habit.name}</strong> - Today: ${habit.completedToday}/${habit.goal}, Streak: ${habit.streak} days 🔥</li>`;
+      });
+      emailBody += "</ul>";
+    }
+
+    emailBody += "<p>Have a productive day!</p>";
+
+    try {
+      await sendEmail({
+        to: notificationSettings.email,
+        subject: "Your Daily Content Ally Summary",
+        body: emailBody,
+      });
+      toast({
+        title: "Test Summary Sent",
+        description: `A summary has been sent to ${notificationSettings.email}. (Check console for simulation)`,
+      });
+    } catch (error) {
+       toast({
+        title: "Failed to Send Summary",
+        description: error instanceof Error ? error.message : "An unknown error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+        setIsSendingTest(false);
+    }
+  };
+
 
   if (!mounted) {
     return (
@@ -271,6 +337,20 @@ export default function SettingsPage() {
                  </Button>
               </CardFooter>
             </Card>
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Test Notifications</CardTitle>
+                <CardDescription>
+                  Manually send a test notification to your configured email address to see how it looks.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={handleSendTestSummary} disabled={isSendingTest}>
+                  <Send className="mr-2 h-4 w-4" />
+                  {isSendingTest ? "Sending..." : "Send Test Daily Summary"}
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="account">
@@ -330,3 +410,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
