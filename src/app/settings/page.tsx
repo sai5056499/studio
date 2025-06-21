@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun, Bell } from "lucide-react";
 
 type Theme = "light" | "dark" | "system";
 
@@ -104,8 +104,9 @@ export default function SettingsPage() {
       <AppHeader title="Settings" />
       <main className="flex-1 overflow-y-auto p-4 md:p-6">
         <Tabs defaultValue="theme" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:max-w-md mx-auto">
+          <TabsList className="grid w-full grid-cols-4 md:max-w-xl mx-auto">
             <TabsTrigger value="theme">Theme</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="account">Account</TabsTrigger>
             <TabsTrigger value="general">General</TabsTrigger>
           </TabsList>
@@ -148,6 +149,46 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="notifications">
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Notification Settings</CardTitle>
+                <CardDescription>
+                  Manage how you receive notifications. (These are currently placeholders and not functional).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="task-reminders" className="text-base">Task Reminders</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive notifications for upcoming task deadlines.
+                    </p>
+                  </div>
+                  <Switch id="task-reminders" disabled defaultChecked />
+                </div>
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="habit-streaks" className="text-base">Habit Streaks</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Get alerts about maintaining or breaking your habit streaks.
+                    </p>
+                  </div>
+                  <Switch id="habit-streaks" disabled defaultChecked />
+                </div>
+                 <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="ai-suggestions" className="text-base">AI Suggestions</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Allow AI to proactively send you useful suggestions.
+                    </p>
+                  </div>
+                  <Switch id="ai-suggestions" disabled />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="account">
             <Card className="mt-6">
               <CardHeader>
@@ -181,18 +222,18 @@ export default function SettingsPage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
-                    <Label htmlFor="notifications" className="text-base">Enable Notifications</Label>
+                    <Label htmlFor="notifications-general" className="text-base">Enable All Notifications</Label>
                     <p className="text-sm text-muted-foreground">
-                      Receive notifications for important updates.
+                      A master switch for all application alerts.
                     </p>
                   </div>
-                  <Switch id="notifications" disabled />
+                  <Switch id="notifications-general" disabled />
                 </div>
                  <div className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
                     <Label htmlFor="autocorrect" className="text-base">Enable Autocorrect</Label>
                     <p className="text-sm text-muted-foreground">
-                      Automatically correct spelling mistakes.
+                      Automatically correct spelling mistakes in input fields.
                     </p>
                   </div>
                   <Switch id="autocorrect" defaultChecked disabled />
