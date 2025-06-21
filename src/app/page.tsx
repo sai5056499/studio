@@ -64,18 +64,18 @@ export default function LandingPage() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-center p-4 md:p-8 text-white landing-page-bg">
       {/* Background Shapes & Spheres - Decorative */}
-      <Sphere size="180px" color="radial-gradient(circle, hsla(275, 70%, 55%, 0.6) 0%, hsla(250, 70%, 40%, 0.1) 100%)" top="5%" left="2%" animationDelay="0s" />
-      <Sphere size="100px" color="radial-gradient(circle, hsla(180, 70%, 60%, 0.5) 0%, hsla(220, 70%, 45%, 0.1) 100%)" top="55%" left="12%" animationDelay="1.2s" />
-      <Sphere size="150px" color="radial-gradient(circle, hsla(310, 65%, 60%, 0.4) 0%, hsla(280, 60%, 40%, 0.1) 100%)" top="15%" right="8%" animationDelay="0.6s" />
-      <Sphere size="70px" color="radial-gradient(circle, hsla(230, 75%, 65%, 0.6) 0%, hsla(300, 60%, 30%, 0.1) 100%)" bottom="10%" right="15%" animationDelay="1.8s" />
-      <Sphere size="220px" color="radial-gradient(circle, hsla(260, 60%, 50%, 0.3) 0%, hsla(240, 50%, 30%, 0.05) 100%)" bottom="2%" left="20%" animationDelay="0.3s" />
+      <Sphere size="180px" color="radial-gradient(circle, hsla(275, 70%, 55%, 0.3) 0%, hsla(250, 70%, 40%, 0.05) 100%)" top="5%" left="2%" animationDelay="0s" />
+      <Sphere size="100px" color="radial-gradient(circle, hsla(180, 70%, 60%, 0.25) 0%, hsla(220, 70%, 45%, 0.05) 100%)" top="55%" left="12%" animationDelay="1.2s" />
+      <Sphere size="150px" color="radial-gradient(circle, hsla(310, 65%, 60%, 0.2) 0%, hsla(280, 60%, 40%, 0.05) 100%)" top="15%" right="8%" animationDelay="0.6s" />
+      <Sphere size="70px" color="radial-gradient(circle, hsla(230, 75%, 65%, 0.3) 0%, hsla(300, 60%, 30%, 0.05) 100%)" bottom="10%" right="15%" animationDelay="1.8s" />
+      <Sphere size="220px" color="radial-gradient(circle, hsla(260, 60%, 50%, 0.15) 0%, hsla(240, 50%, 30%, 0.02) 100%)" bottom="2%" left="20%" animationDelay="0.3s" />
       
       <div 
         className="absolute inset-0 overflow-hidden" 
         aria-hidden="true"
       >
-        <div className="absolute w-[500px] h-[400px] -rotate-[25deg] top-[10%] left-[calc(50%-500px)] opacity-30 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full filter blur-xl" data-ai-hint="abstract light" />
-        <div className="absolute w-[450px] h-[350px] rotate-[30deg] bottom-[15%] right-[calc(50%-450px)] opacity-25 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full filter blur-2xl" data-ai-hint="blur shape" />
+        <div className="absolute w-[500px] h-[400px] -rotate-[25deg] top-[10%] left-[calc(50%-500px)] opacity-20 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full filter blur-xl" data-ai-hint="abstract light" />
+        <div className="absolute w-[450px] h-[350px] rotate-[30deg] bottom-[15%] right-[calc(50%-450px)] opacity-15 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full filter blur-2xl" data-ai-hint="blur shape" />
       </div>
 
 
@@ -143,14 +143,14 @@ export default function LandingPage() {
       </section>
       <style jsx global>{`
         .landing-page-bg {
-          background-color: #0d051f; 
+          background-color: #0A0417; /* Darker, less saturated purple */
           background-image:
-            radial-gradient(ellipse at 10% 20%, hsla(280, 80%, 35%, 0.55) 0px, transparent 60%), 
-            radial-gradient(ellipse at 85% 30%, hsla(250, 75%, 45%, 0.5) 0px, transparent 65%), 
-            radial-gradient(ellipse at 50% 70%, hsla(300, 70%, 30%, 0.45) 0px, transparent 70%), 
-            radial-gradient(ellipse at 20% 85%, hsla(320, 75%, 40%, 0.5) 0px, transparent 60%), 
-            radial-gradient(ellipse at 75% 90%, hsla(260, 80%, 35%, 0.55) 0px, transparent 65%), 
-            linear-gradient(170deg, hsla(260, 45%, 15%, 1) 0%, hsla(280,50%,20%,1) 30%, hsla(300,55%,25%,1) 70%, hsla(270,40%,10%,1) 100%);
+            radial-gradient(ellipse at 10% 20%, hsla(280, 80%, 35%, 0.45) 0px, transparent 60%), 
+            radial-gradient(ellipse at 85% 30%, hsla(250, 75%, 45%, 0.4) 0px, transparent 65%), 
+            radial-gradient(ellipse at 50% 70%, hsla(300, 70%, 30%, 0.35) 0px, transparent 70%), 
+            radial-gradient(ellipse at 20% 85%, hsla(320, 75%, 40%, 0.4) 0px, transparent 60%), 
+            radial-gradient(ellipse at 75% 90%, hsla(260, 80%, 35%, 0.45) 0px, transparent 65%), 
+            linear-gradient(170deg, hsla(260, 45%, 10%, 1) 0%, hsla(280,50%,15%,1) 30%, hsla(300,55%,20%,1) 70%, hsla(270,40%,8%,1) 100%);
           background-blend-mode: screen; 
         }
         @keyframes pulse { 
@@ -172,4 +172,4 @@ export default function LandingPage() {
     </div>
   );
 }
-
+    
