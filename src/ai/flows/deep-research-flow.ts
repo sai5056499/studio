@@ -53,7 +53,7 @@ Key Focus Points:
 Please ensure your research specifically addresses these points.
 {{/if}}
 
-Structure your entire response as a single, valid JSON object that strictly conforms to the provided output schema.
+IMPORTANT: Your entire response must be a single, valid JSON object that strictly and perfectly conforms to the provided output schema. Do not include any extra text, characters, or formatting outside of the JSON structure.
 The summary should be concise and under 250 words. The 'followUpQuestions' field must contain exactly three string questions.
 `,
 });
