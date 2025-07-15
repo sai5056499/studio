@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { MiniCalendar } from "@/components/planning/mini-calendar";
 import { DashboardSummary } from "@/components/planning/dashboard-summary";
-import { useTasks } from "@/contexts/task-context"; // Import useTasks
+import { useTasks } from "@/contexts/task-context";
 
 const taskPlanningSchema = z.object({
   taskDescription: z.string().min(10, "Task description must be at least 10 characters."),
@@ -49,7 +49,7 @@ export default function TaskPlanningPage() {
     toggleSubTaskStatus,
     updateTaskStatus,
     toggleDailyReminder,
-    isLoading: isContextLoading, // Using isLoading from context now
+    isLoading: isContextLoading,
     setIsLoading: setIsContextLoading 
   } = useTasks();
   
@@ -73,13 +73,12 @@ export default function TaskPlanningPage() {
   });
 
   useEffect(() => {
-    // Sync isAiPending with context's isLoading for external indicators if needed
     setIsContextLoading(isAiPending);
   }, [isAiPending, setIsContextLoading]);
 
   const onSubmitAiTask: SubmitHandler<TaskPlanningFormValues> = (data) => {
     startAiTransition(async () => {
-      setIsContextLoading(true); // Indicate loading start
+      setIsContextLoading(true);
       try {
         const result = await aiPoweredTaskPlanning(data as AiPoweredTaskPlanningInput);
         const newTask: PlannedTask = {
@@ -116,13 +115,13 @@ export default function TaskPlanningPage() {
           variant: "destructive",
         });
       } finally {
-        setIsContextLoading(false); // Indicate loading end
+        setIsContextLoading(false);
       }
     });
   };
 
   const handleUpdateTaskStatus = useCallback((taskId: string, newStatus: TaskStatus) => {
-    updateTaskStatus(taskId, newStatus); // Use context function
+    updateTaskStatus(taskId, newStatus);
     const taskName = plannedTasks.find(t => t.id === taskId)?.taskName || "Task";
     toast({
       title: "Task Status Updated",
@@ -131,7 +130,7 @@ export default function TaskPlanningPage() {
   }, [updateTaskStatus, plannedTasks, toast]);
 
   const handleToggleSubTaskStatus = useCallback((taskId: string, dailyTaskIndex: number, subTaskIndex: number) => {
-    toggleSubTaskStatus(taskId, dailyTaskIndex, subTaskIndex); // Use context function
+    toggleSubTaskStatus(taskId, dailyTaskIndex, subTaskIndex);
   }, [toggleSubTaskStatus]);
 
   const handleDeleteRequest = (taskId: string) => {
@@ -142,7 +141,7 @@ export default function TaskPlanningPage() {
   const confirmDeleteTask = () => {
     if (!deletingTaskId) return;
     const taskToDelete = plannedTasks.find(task => task.id === deletingTaskId);
-    deletePlannedTask(deletingTaskId); // Use context function
+    deletePlannedTask(deletingTaskId);
     setIsDeleteAlertOpen(false);
     if (taskToDelete) {
       toast({
@@ -160,7 +159,7 @@ export default function TaskPlanningPage() {
 
   const handleSaveEditedTask = (updatedTaskData: PlannedTask) => {
     setIsSavingEdit(true);
-     const taskWithProperSubItems = { // Ensure IDs and defaults for potentially new sub-items
+     const taskWithProperSubItems = {
       ...updatedTaskData,
       dailyTasks: updatedTaskData.dailyTasks.map((dt, dtIdx) => ({
         ...dt,
@@ -173,7 +172,7 @@ export default function TaskPlanningPage() {
         })),
       })),
     };
-    updatePlannedTask(taskWithProperSubItems); // Use context function
+    updatePlannedTask(taskWithProperSubItems);
     setIsEditModalOpen(false);
     setEditingTask(null);
     setIsSavingEdit(false);
@@ -184,7 +183,7 @@ export default function TaskPlanningPage() {
   };
   
   const handleToggleDailyReminder = (taskId: string) => {
-    toggleDailyReminder(taskId); // Use context function
+    toggleDailyReminder(taskId);
     const task = plannedTasks.find(t => t.id === taskId);
     if (task) {
       toast({

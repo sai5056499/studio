@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { generateContent, type GenerateContentInput, type GenerateContentOutput } from "@/ai/flows/generate-content-flow";
-import { Loader2, Wand2, AlertTriangle } from "lucide-react";
+import { Loader2, Wand2, AlertTriangle, Copy } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const generateContentSchema = z.object({
@@ -23,7 +23,7 @@ const generateContentSchema = z.object({
     .default("generic"),
   tone: z.enum(["formal", "casual", "humorous", "professional", "creative"])
     .default("professional"),
-  maxLength: z.coerce.number().int().positive().optional().or(z.literal("")), // Allow empty string, coerce to number
+  maxLength: z.coerce.number().int().positive().optional().or(z.literal("")),
   customInstructions: z.string().optional(),
 });
 
@@ -56,7 +56,6 @@ export default function AiWriterPage() {
     handleSubmit,
     control,
     formState: { errors },
-    reset,
   } = useForm<GenerateContentFormValues>({
     resolver: zodResolver(generateContentSchema),
     defaultValues: {
@@ -72,7 +71,6 @@ export default function AiWriterPage() {
     setIsGenerating(true);
     setGeneratedOutput(null);
     try {
-      // Prepare input for AI flow, ensuring maxLength is number or undefined
       const flowInput: GenerateContentInput = {
         ...data,
         maxLength: data.maxLength === "" || data.maxLength === undefined ? undefined : Number(data.maxLength),
@@ -94,6 +92,13 @@ export default function AiWriterPage() {
     } finally {
       setIsGenerating(false);
     }
+  };
+  
+  const handleCopyToClipboard = () => {
+    if (!generatedOutput?.generatedContent) return;
+    navigator.clipboard.writeText(generatedOutput.generatedContent)
+      .then(() => toast({ title: "Copied to clipboard!" }))
+      .catch(err => toast({ title: "Failed to copy", description: String(err), variant: "destructive" }));
   };
 
   return (
@@ -209,8 +214,17 @@ export default function AiWriterPage() {
           <div className="lg:col-span-1">
             <Card className="shadow-lg h-full flex flex-col">
               <CardHeader>
-                <CardTitle>Generated Output</CardTitle>
-                <CardDescription>The AI-generated content will appear here.</CardDescription>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <CardTitle>Generated Output</CardTitle>
+                        <CardDescription>The AI-generated content will appear here.</CardDescription>
+                    </div>
+                    {generatedOutput && (
+                        <Button variant="outline" size="sm" onClick={handleCopyToClipboard}>
+                            <Copy className="mr-2 h-4 w-4" /> Copy
+                        </Button>
+                    )}
+                </div>
               </CardHeader>
               <CardContent className="flex-1">
                 <ScrollArea className="h-[calc(100%-4rem)] w-full rounded-md border p-4 bg-muted/30 min-h-[300px]">

@@ -25,7 +25,7 @@ import {
   History 
 } from "lucide-react";
 import type { ChatMessage } from "@/lib/types";
-import RotatingCube from "@/components/decorative/rotating-cube"; // Import the cube
+import RotatingCube from "@/components/decorative/rotating-cube";
 
 export function ChatPanel() {
   const { messages, addMessage, addMessages, clearChat, isLoading, setIsLoading } = useChat();
@@ -159,30 +159,7 @@ export function ChatPanel() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex gap-2">
-          <PageContentModal
-            triggerButton={
-              <Button variant="outline" size="sm" disabled={isLoading || isPending}>
-                <FileText className="mr-2 h-4 w-4" /> Analyze Page
-              </Button>
-            }
-            title="Analyze Page Content"
-            description="Paste the content of the webpage you want to analyze or summarize."
-            actionButtonText="Summarize Content"
-            onConfirm={handleSummarize}
-          />
-          <PageContentModal
-            triggerButton={
-              <Button variant="outline" size="sm" disabled={isLoading || isPending}>
-                <Edit3 className="mr-2 h-4 w-4" /> Improve Content
-              </Button>
-            }
-            title="Improve Page Content"
-            description="Paste the content you want AI-powered improvement suggestions for."
-            actionButtonText="Get Suggestions"
-            onConfirm={handleImproveContent}
-          />
-        </div>
+         <h2 className="text-lg font-semibold">AI Assistant</h2>
          <Button variant="ghost" size="icon" onClick={clearChat} disabled={isLoading || isPending || messages.length === 0} aria-label="Clear chat">
             <Trash2 className="h-5 w-5 text-muted-foreground hover:text-destructive" />
           </Button>
@@ -191,7 +168,7 @@ export function ChatPanel() {
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         {messages.length === 0 && !isLoading && !isPending ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <RotatingCube /> {/* Added the cube here */}
+            <RotatingCube />
             <div className="mb-10">
               <h2 className="text-4xl font-bold tracking-tight mb-2 text-primary">Hi,</h2>
               <p className="text-2xl text-foreground/80">How can I assist you today?</p>

@@ -64,7 +64,7 @@ export function HabitStreaksWidget() {
   const handleMarkDone = (habitId: string) => {
      markHabitDone(habitId);
      const habit = habits.find(h => h.id === habitId);
-     if (habit && habit.completedToday +1 >= habit.goal && habit.completedToday < habit.goal) { // Toast only on the completion that meets the goal
+     if (habit && habit.completedToday +1 >= habit.goal && habit.completedToday < habit.goal) {
         toast({ title: "Goal Achieved!", description: `You've met your goal for "${habit.name}" today!`});
      }
   };
@@ -73,7 +73,7 @@ export function HabitStreaksWidget() {
      return <p className="text-muted-foreground text-sm p-4">Loading habits...</p>;
   }
 
-  const activeHabits = habits.slice(0, 4); // Show max 4 habits on dashboard
+  const activeHabits = habits.slice(0, 4);
 
   if (activeHabits.length === 0 && !isLoading) {
     return (
@@ -92,26 +92,31 @@ export function HabitStreaksWidget() {
   }
 
   return (
-    <div className="space-y-4">
-        <h2 className="text-xl font-semibold flex items-center">
-            <TrendingUp className="mr-3 h-5 w-5 text-accent" /> Daily Habits
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {activeHabits.map(habit => (
-                <MiniHabitCard 
-                    key={habit.id} 
-                    habit={habit} 
-                    onMarkDone={handleMarkDone}
-                />
-            ))}
-        </div>
-        {habits.length > 4 && (
-             <div className="mt-3 text-center">
-                <Button variant="link" asChild size="sm">
-                    <Link href="/habits">View all {habits.length} habits...</Link>
-                </Button>
+    <Card className="shadow-lg">
+        <CardHeader>
+            <CardTitle className="text-lg flex items-center">
+                <TrendingUp className="mr-3 h-5 w-5 text-accent" /> Daily Habits
+            </CardTitle>
+            <CardDescription>A quick look at your daily habit progress. View all in the Habits tab.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {activeHabits.map(habit => (
+                    <MiniHabitCard 
+                        key={habit.id} 
+                        habit={habit} 
+                        onMarkDone={handleMarkDone}
+                    />
+                ))}
             </div>
-        )}
-    </div>
+            {habits.length > 4 && (
+                <div className="mt-4 text-center">
+                    <Button variant="link" asChild size="sm">
+                        <Link href="/habits">View all {habits.length} habits &rarr;</Link>
+                    </Button>
+                </div>
+            )}
+        </CardContent>
+    </Card>
   );
 }

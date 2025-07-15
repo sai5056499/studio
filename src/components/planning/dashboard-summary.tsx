@@ -52,17 +52,17 @@ export function DashboardSummary({ tasks }: DashboardSummaryProps) {
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <SummaryCardItem 
-            icon={<ListTodo className="h-5 w-5 text-primary" />} 
+            icon={<ListTodo className="h-5 w-5 text-blue-500" />} 
             title="To Do" 
             count={summary.todo} 
           />
           <SummaryCardItem 
-            icon={<Activity className="h-5 w-5 text-accent" />} 
+            icon={<Activity className="h-5 w-5 text-orange-500" />} 
             title="In Progress" 
             count={summary.inprogress} 
           />
           <SummaryCardItem 
-            icon={<CheckCircle2 className="h-5 w-5 text-green-500" />} // Using a direct color for completed state
+            icon={<CheckCircle2 className="h-5 w-5 text-green-500" />}
             title="Completed" 
             count={summary.completed}
           />

@@ -20,10 +20,7 @@ import {
   BellOff,
   MoreVertical,
   RefreshCcw,
-  ChevronDown,
-  ChevronRight,
-  Circle, // For todo sub-task
-  MinusCircle, // For in-progress sub-task (optional)
+  Circle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -65,24 +62,12 @@ export function TaskCardItem({
     }
   };
 
-  const getSubTaskIcon = (status: TaskStatus) => {
-    switch (status) {
-      case "completed":
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-      case "inprogress": // Optional: if sub-tasks can be in-progress
-        return <MinusCircle className="h-4 w-4 text-blue-500" />;
-      case "todo":
-      default:
-        return <Circle className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
-
   return (
-    <Card className="shadow-lg w-full break-inside-avoid-column">
+    <Card className="shadow-md hover:shadow-lg transition-shadow w-full break-inside-avoid-column">
       <CardHeader>
         <div className="flex justify-between items-start gap-2">
-          <div className="flex-grow min-w-0"> {/* Added min-w-0 for better flex handling */}
-            <CardTitle className="text-lg mb-1 break-words">{task.taskName}</CardTitle> {/* Added break-words */}
+          <div className="flex-grow min-w-0">
+            <CardTitle className="text-lg mb-1 break-words">{task.taskName}</CardTitle>
             <div className="flex items-center text-xs text-muted-foreground mb-1">
               <CalendarClock className="inline-block mr-1 h-3 w-3" />
               <span>Deadline: {task.deadline}</span>
@@ -91,18 +76,15 @@ export function TaskCardItem({
               {task.status}
             </Badge>
           </div>
-          <div className="flex flex-col items-end space-y-1 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             <Button
-              variant={task.isDailyReminderSet ? "default" : "outline"}
-              size="sm"
+              variant={task.isDailyReminderSet ? "outline" : "ghost"}
+              size="icon"
               onClick={() => onToggleReminder(task.id)}
-              className="text-xs px-2 py-1 h-auto"
+              className="h-7 w-7"
               aria-label={task.isDailyReminderSet ? "Turn off daily reminder" : "Set daily reminder"}
             >
-              {task.isDailyReminderSet ? <BellOff className="mr-1 h-3 w-3" /> : <BellRing className="mr-1 h-3 w-3" />}
-              <span className="hidden sm:inline group-data-[collapsible=icon]:hidden"> {/* Text hidden on <sm screens */}
-                {task.isDailyReminderSet ? "Reminder On" : "Set Reminder"}
-              </span>
+              {task.isDailyReminderSet ? <BellOff className="h-4 w-4" /> : <BellRing className="h-4 w-4" />}
             </Button>
              <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -119,35 +101,23 @@ export function TaskCardItem({
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Change Status</DropdownMenuLabel>
-                {task.status === "todo" && (
+                {task.status !== 'inprogress' && (
                   <DropdownMenuItem onClick={() => onUpdateStatus(task.id, "inprogress")}>
                     <PlayCircle className="mr-2 h-4 w-4" />
-                    Start Task
+                    Move to In Progress
                   </DropdownMenuItem>
                 )}
-                {task.status === "inprogress" && (
-                  <>
+                 {task.status !== 'completed' && (
                     <DropdownMenuItem onClick={() => onUpdateStatus(task.id, "completed")}>
                       <CheckCircle2 className="mr-2 h-4 w-4" />
                       Mark as Completed
                     </DropdownMenuItem>
+                )}
+                {task.status !== 'todo' && (
                     <DropdownMenuItem onClick={() => onUpdateStatus(task.id, "todo")}>
                       <Undo2 className="mr-2 h-4 w-4" />
                       Move to Todo
                     </DropdownMenuItem>
-                  </>
-                )}
-                {task.status === "completed" && (
-                  <>
-                    <DropdownMenuItem onClick={() => onUpdateStatus(task.id, "inprogress")}>
-                      <RefreshCcw className="mr-2 h-4 w-4" />
-                      Move to In Progress
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onUpdateStatus(task.id, "todo")}>
-                      <Undo2 className="mr-2 h-4 w-4" />
-                      Reopen (Move to Todo)
-                    </DropdownMenuItem>
-                  </>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => onDelete(task.id)} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
@@ -213,7 +183,7 @@ export function TaskCardItem({
         )}
       </CardContent>
       {task.overallReminder && (
-        <CardFooter>
+        <CardFooter className="bg-muted/30 p-3 rounded-b-lg">
           <p className="text-xs text-muted-foreground italic">Reminder: {task.overallReminder}</p>
         </CardFooter>
       )}

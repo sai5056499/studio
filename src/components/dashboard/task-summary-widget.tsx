@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ListTodo, Activity, CalendarDays, ExternalLink, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -49,7 +48,7 @@ function DashboardTaskCard({ task, onToggleSubTask }: DashboardTaskCardProps) {
             <h4 className="font-semibold text-xs mb-1.5">Focus: {currentDailyTask.dayDescription}</h4>
             {currentDailyTask.subTasks.length > 0 ? (
               <ul className="space-y-1">
-                {currentDailyTask.subTasks.slice(0,3).map((subTask, subIndex) => ( // Show max 3 subtasks
+                {currentDailyTask.subTasks.slice(0,3).map((subTask, subIndex) => (
                   <li key={subTask.id} className="flex items-center">
                     <Checkbox
                       id={`dashboard-subtask-${task.id}-${currentDailyTask?.id}-${subTask.id}`}
@@ -105,7 +104,7 @@ export function TaskSummaryWidget() {
   );
 
   const todoTasks = React.useMemo(
-    () => plannedTasks.filter(task => task.status === "todo").sort((a,b) => new Date(b.createdAt).getTime() - new Date(b.createdAt).getTime()),
+    () => plannedTasks.filter(task => task.status === "todo").sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [plannedTasks]
   );
   
@@ -138,12 +137,21 @@ export function TaskSummaryWidget() {
 
 
   return (
-    <div className="space-y-4">
-        <h2 className="text-xl font-semibold flex items-center">
-            <Activity className="mr-3 h-5 w-5 text-primary" /> Task Focus ({inProgressTasks.length} In Progress, {todoTasks.length} Todo)
-        </h2>
+    <Card className="shadow-lg">
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center">
+          <Activity className="mr-3 h-5 w-5 text-primary" /> Task Focus
+        </CardTitle>
+        <CardDescription>
+          {inProgressTasks.length > 0 || todoTasks.length > 0 
+            ? `You have ${inProgressTasks.length} task(s) in progress and ${todoTasks.length} pending.`
+            : "All tasks are complete. Well done!"
+          }
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
         {tasksToShow.length > 0 ? (
-            <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-2">
             {tasksToShow.map(task => (
                 <DashboardTaskCard 
                 key={task.id} 
@@ -153,15 +161,18 @@ export function TaskSummaryWidget() {
             ))}
             </div>
         ) : (
-            <p className="text-muted-foreground">No tasks currently in progress or up next. Plan some tasks!</p>
+             <div className="text-center py-4">
+                <p className="text-green-600 flex items-center justify-center"><CheckCircle2 className="mr-2 h-5 w-5"/>All tasks completed!</p>
+             </div>
         )}
          {todoTasks.length > Math.max(0, 3 - inProgressTasks.length) && (
-            <div className="mt-3 text-center">
+            <div className="mt-4 text-center">
                 <Button variant="link" asChild size="sm">
-                    <Link href="/planning">View all {todoTasks.length} 'To Do' tasks...</Link>
+                    <Link href="/planning">View all {todoTasks.length} 'To Do' tasks &rarr;</Link>
                 </Button>
             </div>
         )}
-    </div>
+      </CardContent>
+    </Card>
   );
 }
