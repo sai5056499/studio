@@ -81,7 +81,7 @@ const deepResearchFlow = ai.defineFlow(
     }
     
     // Parse the semi-structured text into the final structured output
-    const sources = parseSources(output.sourcesText);
+    const sources = await parseSources(output.sourcesText);
     const followUpQuestions = output.followUpQuestionsText.split('\n').map(q => q.trim()).filter(q => q);
 
     return {

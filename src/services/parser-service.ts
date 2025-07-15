@@ -17,9 +17,9 @@ interface ParsedSource {
  * 
  * @param {string} sourcesText - The text block containing sources, with each source on a new line.
  *                               Expected format per line: "Title | URL | Publication"
- * @returns {ParsedSource[]} - An array of parsed source objects.
+ * @returns {Promise<ParsedSource[]>} - A promise that resolves to an array of parsed source objects.
  */
-export function parseSources(sourcesText: string): ParsedSource[] {
+export async function parseSources(sourcesText: string): Promise<ParsedSource[]> {
     if (!sourcesText || typeof sourcesText !== 'string') {
         return [];
     }
@@ -38,7 +38,7 @@ export function parseSources(sourcesText: string): ParsedSource[] {
             const publication = parts[2] || undefined;
             
             // Basic URL validation/cleanup
-            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
                 url = `https://${url}`;
             }
 
