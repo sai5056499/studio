@@ -110,40 +110,37 @@ export default function HabitsPage() {
     <div className="flex h-full flex-col">
       <AppHeader title="Habit Tracker" />
       <main className="flex-1 overflow-y-auto p-4 md:p-6">
-        <Card className="shadow-xl">
-          <CardHeader className="flex flex-row items-center justify-between">
+        <div className="flex items-center justify-between mb-6">
             <div>
-              <CardTitle className="text-2xl">Your Daily Habits</CardTitle>
-              <CardDescription>Track your progress and build positive routines.</CardDescription>
+              <h1 className="text-2xl font-bold">Habit Tracker</h1>
+              <p className="text-muted-foreground">Track your progress and build positive routines.</p>
             </div>
             <Button onClick={handleOpenAddModal}>
               <PlusCircle className="mr-2 h-4 w-4" /> Add New Habit
             </Button>
-          </CardHeader>
-          <CardContent>
-            {habits.length === 0 ? (
-              <Alert className="bg-primary/5">
-                <Repeat className="h-5 w-5 text-primary" />
-                <AlertTitle className="font-semibold text-primary">No Habits Yet!</AlertTitle>
-                <AlertDescription className="text-foreground/80">
-                  Click "Add New Habit" to start tracking your goals and building streaks.
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {habits.map((habit) => (
-                  <HabitCardItem
-                    key={habit.id}
-                    habit={habit}
-                    onMarkDone={handleMarkDone}
-                    onEdit={handleOpenEditModal}
-                    onDelete={handleDeleteRequest}
-                  />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        </div>
+        
+        {habits.length === 0 ? (
+          <Alert className="bg-primary/5">
+            <Repeat className="h-5 w-5 text-primary" />
+            <AlertTitle className="font-semibold text-primary">No Habits Yet!</AlertTitle>
+            <AlertDescription className="text-foreground/80">
+              Click "Add New Habit" to start tracking your goals and building streaks.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {habits.map((habit) => (
+              <HabitCardItem
+                key={habit.id}
+                habit={habit}
+                onMarkDone={handleMarkDone}
+                onEdit={handleOpenEditModal}
+                onDelete={handleDeleteRequest}
+              />
+            ))}
+          </div>
+        )}
       </main>
 
       <EditHabitModal

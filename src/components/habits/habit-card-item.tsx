@@ -6,7 +6,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import HabitIcon from "./habit-icon";
-import { Edit3, Trash2, CheckCircle, Repeat } from "lucide-react";
+import { MoreVertical, Edit3, Trash2, CheckCircle, Repeat } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
 
 interface HabitCardItemProps {
   habit: Habit;
@@ -22,30 +24,35 @@ export function HabitCardItem({ habit, onMarkDone, onEdit, onDelete, isProcessin
 
   return (
     <Card className="shadow-md hover:shadow-lg transition-shadow flex flex-col">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-md">
-              <HabitIcon iconName={habit.iconName} className="h-6 w-6 text-primary" />
-            </div>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10 bg-primary/10 flex items-center justify-center rounded-lg">
+                <HabitIcon iconName={habit.iconName} className="h-6 w-6 text-primary" />
+            </Avatar>
             <div>
-              <CardTitle className="text-lg">{habit.name}</CardTitle>
-              <CardDescription className="text-xs">
-                Streak: {habit.streak} day{habit.streak === 1 ? "" : "s"}
-              </CardDescription>
+                <CardTitle className="text-base font-semibold">{habit.name}</CardTitle>
+                 <p className="text-xs text-muted-foreground">
+                    Streak: {habit.streak} day{habit.streak === 1 ? "" : "s"}
+                 </p>
             </div>
-          </div>
-          <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(habit)} disabled={isProcessing}>
-              <Edit3 className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDelete(habit.id)} disabled={isProcessing}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreVertical className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onEdit(habit)}>
+                    <Edit3 className="mr-2 h-4 w-4" /> Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onDelete(habit.id)} className="text-destructive">
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
       </CardHeader>
-      <CardContent className="flex-grow">
+      <CardContent className="flex-grow pt-2">
         <div className="text-sm text-muted-foreground mb-1">
           Today's Goal: {habit.completedToday} / {habit.goal}
         </div>
@@ -65,3 +72,8 @@ export function HabitCardItem({ habit, onMarkDone, onEdit, onDelete, isProcessin
     </Card>
   );
 }
+
+// Dummy Avatar for structure, can be replaced with ShadCN's if available
+const Avatar = ({ className, children }: { className?: string, children: React.ReactNode }) => (
+    <div className={className}>{children}</div>
+);

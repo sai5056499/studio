@@ -17,6 +17,7 @@ import { AppLogo } from "@/components/icons";
 import { Separator } from "@/components/ui/separator";
 import { LogOut } from "lucide-react";
 import { defaultNavItems, bottomNavItems, SIDEBAR_ORDER_STORAGE_KEY, type NavItem } from "@/lib/nav-config";
+import { cn } from "@/lib/utils";
 
 
 export function AppSidebar() {
@@ -61,9 +62,9 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
-      <SidebarHeader className="border-b border-sidebar-border">
+      <SidebarHeader className="border-b border-sidebar-border p-4">
         <Link href="/" passHref legacyBehavior>
-          <a className="flex items-center gap-2 p-2 group-data-[collapsible=icon]:justify-center outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring rounded-sm">
+          <a className="flex items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring rounded-sm">
             <AppLogo className="h-8 w-8 text-sidebar-primary" />
             <span className="text-lg font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
               Content Ally
@@ -72,7 +73,7 @@ export function AppSidebar() {
         </Link>
       </SidebarHeader>
       <SidebarContent className="flex-1 overflow-y-auto">
-        <SidebarMenu className="p-2">
+        <SidebarMenu className="p-2 space-y-1">
           {orderedNavItems.map((item) => (
             <SidebarMenuItem key={item.href}>
               <Link href={item.href} legacyBehavior passHref>
@@ -80,10 +81,17 @@ export function AppSidebar() {
                   asChild
                   isActive={pathname === item.href}
                   tooltip={{ children: item.label, side: "right" }}
-                  className="justify-start"
+                  className={cn(
+                    "justify-start relative",
+                    pathname === item.href && "bg-sidebar-accent/50 text-sidebar-accent-foreground"
+                  )}
                 >
                   <a>
-                    <item.icon className="h-5 w-5" />
+                    <div className={cn(
+                      "absolute left-0 top-0 h-full w-1 rounded-r-full bg-transparent",
+                      pathname === item.href && "bg-sidebar-primary"
+                    )}></div>
+                    <item.icon className="h-5 w-5 ml-1" />
                     <span>{item.label}</span>
                   </a>
                 </SidebarMenuButton>
@@ -94,7 +102,7 @@ export function AppSidebar() {
       </SidebarContent>
       <Separator className="my-0 bg-sidebar-border" />
       <SidebarFooter className="p-2">
-        <SidebarMenu>
+        <SidebarMenu className="space-y-1">
           {bottomNavItems.map((item) => (
              <SidebarMenuItem key={item.href}>
               <Link href={item.href} legacyBehavior passHref>
@@ -102,10 +110,17 @@ export function AppSidebar() {
                   asChild
                   isActive={pathname === item.href}
                   tooltip={{ children: item.label, side: "right" }}
-                  className="justify-start"
+                  className={cn(
+                    "justify-start relative",
+                    pathname === item.href && "bg-sidebar-accent/50 text-sidebar-accent-foreground"
+                  )}
                 >
                   <a>
-                    <item.icon className="h-5 w-5" />
+                    <div className={cn(
+                      "absolute left-0 top-0 h-full w-1 rounded-r-full bg-transparent",
+                      pathname === item.href && "bg-sidebar-primary"
+                    )}></div>
+                    <item.icon className="h-5 w-5 ml-1" />
                     <span>{item.label}</span>
                   </a>
                 </SidebarMenuButton>
@@ -118,7 +133,7 @@ export function AppSidebar() {
               className="justify-start"
               // onClick={() => { /* TODO: Implement logout */ }}
             >
-              <LogOut className="h-5 w-5" />
+              <LogOut className="h-5 w-5 ml-1" />
               <span>Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
