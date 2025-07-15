@@ -75,14 +75,22 @@ export type NavItem = {
 };
 
 // Research Agent Types
-const SourceSchema = z.object({
-    title: z.string().describe("The title of the source article or document."),
-    url: z.string().describe("The URL of the source. This should be a plausible, fully-formed URL."),
-    publication: z.string().optional().describe("The name of the publication or website (e.g., 'Forbes', 'Wikipedia').")
-});
+export interface Source {
+  title: string;
+  url: string;
+  snippet: string;
+  publication?: string;
+}
 
 export const DeepResearchOutputSchema = z.object({
-  summary: z.string().max(250, "Summary must be less than 250 words.").describe('A concise summary of the key findings, under 250 words.'),
-  sources: z.array(SourceSchema).describe('A list of plausible sources the AI might have used to generate the summary. These are for reference and may not be real.'),
-  followUpQuestions: z.array(z.string()).length(3).describe('An array of exactly three insightful follow-up questions based on the research.'),
+  summary: z.string().describe('A concise summary of the key findings.'),
+  sources: z.array(z.object({
+    title: z.string(),
+    url: z.string(),
+    snippet: z.string(),
+    publication: z.string().optional()
+  })).describe('A list of sources used for the summary.'),
+  followUpQuestions: z.array(z.string()).length(3).describe('An array of exactly three insightful follow-up questions.'),
 });
+
+export type DeepResearchOutput = z.infer<typeof DeepResearchOutputSchema>;
