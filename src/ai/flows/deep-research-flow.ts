@@ -27,8 +27,7 @@ const webSearchTool = ai.defineTool(
     name: 'webSearch',
     description: 'Performs a web search for a given topic to find relevant articles and sources.',
     inputSchema: z.object({
-      topic: z.string().describe("The research topic."),
-      focusPoints: z.string().optional().describe("Specific areas to focus the search on.")
+      query: z.string().describe("The search query, which should be the research topic and any focus points."),
     }),
     outputSchema: z.object({
       sources: z.array(z.object({
@@ -43,7 +42,7 @@ const webSearchTool = ai.defineTool(
     // In a real application, this could be a call to a real search API (e.g., Google Search, Serper).
     // Here, we use another LLM call to *simulate* the search results.
     const searcher = await ai.generate({
-      prompt: `You are a web search engine. Given the topic "${input.topic}" ${input.focusPoints ? `with a focus on "${input.focusPoints}"` : ''}, find the 7 most relevant and up-to-date articles. For each, provide a realistic title, a plausible full URL, a publication name, and a concise, relevant snippet.`,
+      prompt: `You are a web search engine. Given the search query "${input.query}", find the 7 most relevant and up-to-date articles. For each, provide a realistic title, a plausible full URL, a publication name, and a concise, relevant snippet.`,
       output: {
         schema: z.object({
           sources: z.array(z.object({
@@ -73,11 +72,12 @@ const researcherPrompt = ai.definePrompt({
     prompt: `You are Kimi-Research, a helpful research assistant.
 You have access to a web search tool.
 Given the user's research topic, your process is:
-1.  First, use the 'webSearch' tool to find relevant articles.
+1.  First, use the 'webSearch' tool with a query based on the topic and focus points to find relevant articles.
 2.  Then, using *only the information from the search results provided by the tool*, synthesize a concise summary of the key findings (under 250 words).
 3.  Finally, based on the synthesized summary, provide exactly three insightful follow-up questions.
 
 Do not use any information other than what the 'webSearch' tool returns.
+Ensure your response is a single, valid JSON object that strictly adheres to the output schema.
 
 User's Research Topic: {{{topic}}}
 {{#if focusPoints}}
@@ -96,10 +96,11 @@ export async function deepResearch(input: DeepResearchInput): Promise<DeepResear
   }
   
   // The tool's output is available in the 'data' part of the response history
-  const toolOutputs = result.history.filter(m => m.role === 'tool');
+  const toolOutputs = result.history?.filter(m => m.role === 'tool') || [];
   const searchResults = toolOutputs.reduce((acc, curr) => {
-    const toolData = curr.data as { sources: Source[] };
-    if (toolData.sources) {
+    // Ensure curr.data and curr.data.sources exist before trying to spread them
+    if (curr.data && (curr.data as any).sources) {
+      const toolData = curr.data as { sources: Source[] };
       acc.push(...toolData.sources);
     }
     return acc;
