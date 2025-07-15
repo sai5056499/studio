@@ -77,7 +77,7 @@ Given the user's research topic, your process is:
 3.  Finally, based on the synthesized summary, provide exactly three insightful follow-up questions.
 
 Do not use any information other than what the 'webSearch' tool returns.
-Ensure your response is a single, valid JSON object that strictly adheres to the output schema.
+Your entire response must be a single, valid JSON object and nothing else. Do not include any text before or after the JSON object.
 
 User's Research Topic: {{{topic}}}
 {{#if focusPoints}}
