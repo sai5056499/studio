@@ -105,7 +105,7 @@ export function TaskSummaryWidget() {
   );
 
   const todoTasks = React.useMemo(
-    () => plannedTasks.filter(task => task.status === "todo").sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+    () => plannedTasks.filter(task => task.status === "todo").sort((a,b) => new Date(b.createdAt).getTime() - new Date(b.createdAt).getTime()),
     [plannedTasks]
   );
   
