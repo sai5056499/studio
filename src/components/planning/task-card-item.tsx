@@ -220,5 +220,3 @@ export function TaskCardItem({
     </Card>
   );
 }
-
-    

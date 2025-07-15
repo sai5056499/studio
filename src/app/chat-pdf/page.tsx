@@ -468,6 +468,3 @@ export default function ChatPdfPage() {
     </div>
   );
 }
-
-
-    
