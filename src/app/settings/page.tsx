@@ -11,13 +11,20 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Monitor, Moon, Sun, Bell, Save, Send, ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
+import { Monitor, Moon, Sun, Bell, Save, Send, ArrowUp, ArrowDown, RotateCcw, Palette } from "lucide-react";
 import { sendEmail } from "@/services/email-service";
 import type { PlannedTask, Habit, NavItem } from "@/lib/types";
 import { defaultNavItems, SIDEBAR_ORDER_STORAGE_KEY } from "@/lib/nav-config";
+import { cn } from "@/lib/utils";
 
 // Types for settings
-type Theme = "light" | "dark" | "system";
+type ThemeMode = "light" | "dark" | "system";
+type ThemePalette = "violet" | "devias";
+
+interface ThemeSettings {
+  mode: ThemeMode;
+  palette: ThemePalette;
+}
 
 interface NotificationSettings {
   email: string;
@@ -37,7 +44,7 @@ interface GeneralSettings {
 }
 
 interface AppSettings {
-  theme: Theme;
+  theme: ThemeSettings;
   notifications: NotificationSettings;
   account: AccountSettings;
   general: GeneralSettings;
@@ -48,7 +55,10 @@ const TASKS_STORAGE_KEY = "contentAllyTasks";
 const HABITS_STORAGE_KEY = "contentAllyHabits";
 
 const defaultSettings: AppSettings = {
-  theme: "system",
+  theme: {
+    mode: "system",
+    palette: "devias",
+  },
   notifications: {
     email: "",
     taskReminders: true,
@@ -72,15 +82,24 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = React.useState(false);
   const [isSendingTest, setIsSendingTest] = React.useState(false);
 
-  // Unified state for all settings
   const [settings, setSettings] = React.useState<AppSettings>(defaultSettings);
   
   const [sidebarItems, setSidebarItems] = React.useState<NavItem[]>(defaultNavItems);
   const [isSavingOrder, setIsSavingOrder] = React.useState(false);
 
-  // Load settings and sidebar order from localStorage on mount
+  const applyTheme = React.useCallback((themeSettings: ThemeSettings) => {
+    const { mode, palette } = themeSettings;
+    let themeName = "";
+    if (mode === "system") {
+      const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      themeName = `${palette}-${systemPrefersDark ? 'dark' : 'light'}`;
+    } else {
+      themeName = `${palette}-${mode}`;
+    }
+    document.body.setAttribute('data-theme', themeName);
+  }, []);
+
   React.useEffect(() => {
-    // Load general settings
     const savedSettingsJson = localStorage.getItem(SETTINGS_STORAGE_KEY);
     let loadedSettings: AppSettings = defaultSettings;
     if (savedSettingsJson) {
@@ -89,6 +108,7 @@ export default function SettingsPage() {
         loadedSettings = {
           ...defaultSettings,
           ...savedSettings,
+          theme: { ...defaultSettings.theme, ...savedSettings.theme },
           notifications: { ...defaultSettings.notifications, ...savedSettings.notifications },
           account: { ...defaultSettings.account, ...savedSettings.account },
           general: { ...defaultSettings.general, ...savedSettings.general },
@@ -98,9 +118,7 @@ export default function SettingsPage() {
       }
     }
     setSettings(loadedSettings);
-    applyTheme(loadedSettings.theme);
     
-    // Load sidebar order
     const savedOrderJson = localStorage.getItem(SIDEBAR_ORDER_STORAGE_KEY);
     if (savedOrderJson) {
       try {
@@ -115,7 +133,6 @@ export default function SettingsPage() {
                 newOrderedItems.push(item);
             }
         });
-
         setSidebarItems(newOrderedItems);
       } catch (e) {
         setSidebarItems(defaultNavItems);
@@ -124,18 +141,19 @@ export default function SettingsPage() {
 
     setMounted(true);
   }, []);
+
+  React.useEffect(() => {
+    if (mounted) {
+      applyTheme(settings.theme);
+    }
+  }, [settings.theme, mounted, applyTheme]);
   
-  // Theme change effect
   React.useEffect(() => {
     if (!mounted) return;
 
     const handleSystemThemeChange = (e: MediaQueryListEvent) => {
-      if (settings.theme === 'system') {
-        if (e.matches) {
-          document.documentElement.classList.add("dark");
-        } else {
-          document.documentElement.classList.remove("dark");
-        }
+      if (settings.theme.mode === 'system') {
+        applyTheme(settings.theme);
       }
     };
     
@@ -145,22 +163,7 @@ export default function SettingsPage() {
     return () => {
       systemThemeDark.removeEventListener("change", handleSystemThemeChange);
     };
-  }, [mounted, settings.theme]);
-
-
-  const applyTheme = (theme: Theme) => {
-    if (theme === "light") {
-      document.documentElement.classList.remove("dark");
-    } else if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else { // System theme
-      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
-    }
-  };
+  }, [mounted, settings.theme, applyTheme]);
 
   const handleSettingsChange = (newSettings: Partial<AppSettings>) => {
     const updatedSettings = { ...settings, ...newSettings };
@@ -181,14 +184,18 @@ export default function SettingsPage() {
     }
   };
 
-  const handleThemeChange = (newTheme: Theme) => {
-    applyTheme(newTheme);
-    const updatedSettings = handleSettingsChange({ theme: newTheme });
-    handleSaveSettings(updatedSettings, false); // No toast for theme change, it's instant
-    toast({
-      title: "Theme Updated",
-      description: `Theme set to ${newTheme.charAt(0).toUpperCase() + newTheme.slice(1)}.`,
-    });
+  const handleThemeModeChange = (newMode: ThemeMode) => {
+    const newThemeSettings = { ...settings.theme, mode: newMode };
+    const updatedSettings = handleSettingsChange({ theme: newThemeSettings });
+    handleSaveSettings(updatedSettings, false);
+    toast({ title: "Theme Mode Updated" });
+  };
+  
+  const handleThemePaletteChange = (newPalette: ThemePalette) => {
+    const newThemeSettings = { ...settings.theme, palette: newPalette };
+    const updatedSettings = handleSettingsChange({ theme: newThemeSettings });
+    handleSaveSettings(updatedSettings, false);
+    toast({ title: "Theme Palette Updated" });
   };
   
   const handleSendTestSummary = async () => {
@@ -285,9 +292,7 @@ export default function SettingsPage() {
     return (
       <div className="flex h-full flex-col">
         <AppHeader title="Settings" />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
-           {/* Placeholder for loading state or skeleton */}
-        </main>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6"></main>
       </div>
     );
   }
@@ -310,35 +315,80 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle>Appearance</CardTitle>
                 <CardDescription>
-                  Customize the look and feel of the application. Select your preferred theme.
+                  Customize the look and feel of the application. Select your preferred theme palette and mode.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <RadioGroup
-                  value={settings.theme}
-                  onValueChange={(value) => handleThemeChange(value as Theme)}
-                  className="grid grid-cols-1 sm:grid-cols-3 gap-4"
-                >
-                  {(["light", "dark", "system"] as Theme[]).map((themeOption) => (
+              <CardContent className="space-y-8">
+                <div>
+                  <Label className="text-base font-semibold">Color Palette</Label>
+                  <RadioGroup
+                    value={settings.theme.palette}
+                    onValueChange={(value) => handleThemePaletteChange(value as ThemePalette)}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2"
+                  >
                     <Label
-                      key={themeOption}
-                      htmlFor={`theme-${themeOption}`}
-                      className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer transition-colors"
+                      htmlFor="palette-devias"
+                      className={cn(
+                        "flex flex-col items-center justify-center rounded-md border-2 p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors",
+                        settings.theme.palette === 'devias' ? "border-primary" : "border-muted bg-popover"
+                      )}
                     >
-                      <RadioGroupItem value={themeOption} id={`theme-${themeOption}`} className="sr-only" />
-                      {themeOption === "light" && <Sun className="mb-3 h-6 w-6" />}
-                      {themeOption === "dark" && <Moon className="mb-3 h-6 w-6" />}
-                      {themeOption === "system" && <Monitor className="mb-3 h-6 w-6" />}
-                      <span className="text-sm font-medium capitalize">
-                        {themeOption}
-                      </span>
+                      <RadioGroupItem value="devias" id="palette-devias" className="sr-only" />
+                      <div className="flex gap-2 mb-2">
+                          <div className="h-6 w-6 rounded-full bg-[#5048E5]"></div>
+                          <div className="h-6 w-6 rounded-full bg-[#10B981]"></div>
+                          <div className="h-6 w-6 rounded-full bg-[#F0B429]"></div>
+                      </div>
+                      <span className="text-sm font-medium">Devias</span>
                     </Label>
-                  ))}
-                </RadioGroup>
-                <p className="text-xs text-muted-foreground">
-                  Selecting "System" will automatically use your operating system's theme preference.
-                  The Light theme is "Violet" and the Dark theme is "Neon Depths".
-                </p>
+                     <Label
+                      htmlFor="palette-violet"
+                       className={cn(
+                        "flex flex-col items-center justify-center rounded-md border-2 p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors",
+                        settings.theme.palette === 'violet' ? "border-primary" : "border-muted bg-popover"
+                      )}
+                    >
+                      <RadioGroupItem value="violet" id="palette-violet" className="sr-only" />
+                      <div className="flex gap-2 mb-2">
+                          <div className="h-6 w-6 rounded-full bg-[#6534e9]"></div>
+                          <div className="h-6 w-6 rounded-full bg-[#3c82f6]"></div>
+                          <div className="h-6 w-6 rounded-full bg-[#ec4899]"></div>
+                      </div>
+                      <span className="text-sm font-medium">Violet</span>
+                    </Label>
+                  </RadioGroup>
+                </div>
+
+                <div>
+                  <Label className="text-base font-semibold">Theme Mode</Label>
+                   <RadioGroup
+                    value={settings.theme.mode}
+                    onValueChange={(value) => handleThemeModeChange(value as ThemeMode)}
+                    className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2"
+                  >
+                    {(["light", "dark", "system"] as ThemeMode[]).map((modeOption) => (
+                      <Label
+                        key={modeOption}
+                        htmlFor={`theme-mode-${modeOption}`}
+                        className={cn(
+                          "flex flex-col items-center justify-center rounded-md border-2 p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors",
+                          settings.theme.mode === modeOption ? "border-primary" : "border-muted bg-popover"
+                        )}
+                      >
+                        <RadioGroupItem value={modeOption} id={`theme-mode-${modeOption}`} className="sr-only" />
+                        {modeOption === "light" && <Sun className="mb-3 h-6 w-6" />}
+                        {modeOption === "dark" && <Moon className="mb-3 h-6 w-6" />}
+                        {modeOption === "system" && <Monitor className="mb-3 h-6 w-6" />}
+                        <span className="text-sm font-medium capitalize">
+                          {modeOption}
+                        </span>
+                      </Label>
+                    ))}
+                  </RadioGroup>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Selecting "System" will automatically use your operating system's theme preference.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

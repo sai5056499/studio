@@ -7,7 +7,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { ChatProvider } from "@/contexts/chat-context";
 import { TaskProvider } from "@/contexts/task-context";
-import { HabitProvider } from "@/contexts/habit-context"; // Import HabitProvider
+import { HabitProvider } from "@/contexts/habit-context";
 import ScrollReactiveBackground from '@/components/layout/ScrollReactiveBackground';
 
 const geistSans = Geist({
@@ -25,20 +25,31 @@ export const metadata: Metadata = {
   description: "Your AI assistant for web content.",
 };
 
+// This function will run on the server and won't have access to localStorage
+// But it sets a default so the body tag exists for the client to hydrate.
+// The actual theme is applied client-side in settings/page.tsx or a theme context.
+const getInitialTheme = () => {
+  // In a real app with server-side theme persistence, you'd check cookies here.
+  // For now, we default to the devias theme.
+  return "devias-light";
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const initialTheme = getInitialTheme();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        data-theme={initialTheme}
       >
-        <ScrollReactiveBackground />
         <ChatProvider>
           <TaskProvider>
-            <HabitProvider> {/* Wrap with HabitProvider */}
+            <HabitProvider>
               <SidebarProvider defaultOpen={false}>
                 <AppSidebar />
                 <SidebarRail />

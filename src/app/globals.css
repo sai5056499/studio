@@ -4,10 +4,108 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  :root, body[data-theme='violet-light'] {
+    /* Original Theme - Light Mode */
+    --background: 240 5% 96%;
+    --foreground: 240 10% 4%;
+
+    --card: 240 5% 96%;
+    --card-foreground: 240 10% 4%;
+
+    --popover: 240 5% 96%;
+    --popover-foreground: 240 10% 4%;
+
+    --primary: 262 82% 57%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 240 5% 84%;
+    --secondary-foreground: 240 10% 4%;
+
+    --muted: 240 5% 90%;
+    --muted-foreground: 240 4% 46%;
+
+    --accent: 240 5% 84%;
+    --accent-foreground: 240 10% 4%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 6% 80%;
+    --input: 240 6% 89%;
+    --ring: 262 82% 57%;
+
+    --radius: 0.5rem;
+
+    /* Sidebar specific theme variables */
+    --sidebar-background: 240 10% 12%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 262 82% 57%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 10% 20%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 10% 15%;
+    --sidebar-ring: 262 82% 57%;
+
+    /* Chart Colors */
+    --chart-1: 262 75% 58%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 34 90% 50%;
+    --chart-4: 0 84% 60%;
+    --chart-5: 222 80% 65%;
+  }
+
+  body[data-theme='violet-dark'] {
+    /* Original Theme - Dark Mode */
+    --background: 240 10% 12%;
+    --foreground: 0 0% 95%;
+
+    --card: 240 10% 12%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 240 10% 12%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 262 82% 57%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 240 4% 16%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 262 82% 57%;
+
+    /* Sidebar variables remain the same as sidebar is always dark */
+    --sidebar-background: 240 10% 12%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 262 82% 57%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 10% 20%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 10% 15%;
+    --sidebar-ring: 262 82% 57%;
+
+    /* Chart Colors */
+    --chart-1: 262 80% 65%;
+    --chart-2: 142 70% 45%;
+    --chart-3: 34 95% 55%;
+    --chart-4: 0 80% 65%;
+    --chart-5: 222 85% 70%;
+  }
+
+  body[data-theme='devias-light'] {
     /* Devias Kit Inspired - Light Mode */
-    --background: 220 20% 98%; /* Very light cool grey */
-    --foreground: 222 47% 11%; /* Dark Slate */
+    --background: 220 20% 98%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
@@ -47,14 +145,14 @@
     --sidebar-ring: 0 0% 98%;
 
     /* Chart Colors */
-    --chart-1: 242 75% 58%;  /* Primary Blue */
-    --chart-2: 142 76% 36%;  /* Green */
-    --chart-3: 34 90% 50%;   /* Orange */
-    --chart-4: 0 84% 60%;    /* Red */
-    --chart-5: 262 80% 65%;  /* Purple */
+    --chart-1: 242 75% 58%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 34 90% 50%;
+    --chart-4: 0 84% 60%;
+    --chart-5: 262 80% 65%;
   }
 
-  .dark {
+  body[data-theme='devias-dark'] {
     /* Devias Kit Inspired - Dark Mode */
     --background: 224 30% 12%; /* Very Dark Blue */
     --foreground: 210 40% 96%;
@@ -84,7 +182,7 @@
     --input: 224 30% 25%;
     --ring: 242 80% 65%;
 
-    /* Sidebar specific theme variables remain same as they are always dark */
+    /* Sidebar variables remain the same as sidebar is always dark */
     --sidebar-background: 224 30% 15%;
     --sidebar-foreground: 220 20% 85%;
     --sidebar-primary: 0 0% 100%;
@@ -95,21 +193,16 @@
     --sidebar-ring: 0 0% 98%;
 
     /* Chart Colors */
-    --chart-1: 242 80% 65%; /* Primary Blue */
-    --chart-2: 142 70% 45%; /* Green */
-    --chart-3: 34 95% 55%; /* Orange */
-    --chart-4: 0 80% 65%; /* Red */
-    --chart-5: 262 85% 70%; /* Purple */
+    --chart-1: 242 80% 65%;
+    --chart-2: 142 70% 45%;
+    --chart-3: 34 95% 55%;
+    --chart-4: 0 80% 65%;
+    --chart-5: 262 85% 70%;
   }
 
-  /* Keep scroll-reactive background, but using the new theme colors */
   body {
     font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-    @apply text-foreground; 
-
-    /* Removed the complex scroll-reactive gradient to match the cleaner Devias style */
-    background-color: hsl(var(--background));
-
+    @apply text-foreground bg-background;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
