@@ -19,7 +19,7 @@ export type DeepResearchInput = z.infer<typeof DeepResearchInputSchema>;
 
 const SourceSchema = z.object({
     title: z.string().describe("The title of the source article or document."),
-    url: z.string().url().describe("The URL of the source. This should be a plausible, fully-formed URL."),
+    url: z.string().describe("The URL of the source. This should be a plausible, fully-formed URL."),
     publication: z.string().optional().describe("The name of the publication or website (e.g., 'Forbes', 'Wikipedia').")
 });
 
