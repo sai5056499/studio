@@ -4,6 +4,7 @@ import type { ImprovePageContentOutput } from "@/ai/flows/improve-page-content";
 // Import the AI output type directly to ensure consistency
 import type { AiPoweredTaskPlanningOutput as AiTaskOutput } from "@/ai/flows/ai-powered-task-planning";
 import type { LucideIcon } from "lucide-react";
+import { z } from "zod";
 
 export interface ChatMessage {
   id: string;
@@ -72,3 +73,16 @@ export type NavItem = {
   label: string;
   icon: LucideIcon;
 };
+
+// Research Agent Types
+const SourceSchema = z.object({
+    title: z.string().describe("The title of the source article or document."),
+    url: z.string().describe("The URL of the source. This should be a plausible, fully-formed URL."),
+    publication: z.string().optional().describe("The name of the publication or website (e.g., 'Forbes', 'Wikipedia').")
+});
+
+export const DeepResearchOutputSchema = z.object({
+  summary: z.string().max(250, "Summary must be less than 250 words.").describe('A concise summary of the key findings, under 250 words.'),
+  sources: z.array(SourceSchema).describe('A list of plausible sources the AI might have used to generate the summary. These are for reference and may not be real.'),
+  followUpQuestions: z.array(z.string()).length(3).describe('An array of exactly three insightful follow-up questions based on the research.'),
+});
