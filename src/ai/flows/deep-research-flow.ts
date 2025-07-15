@@ -1,7 +1,7 @@
 
 'use server';
 /**
- * @fileOverview An AI flow for conducting deep research on a given topic.
+ * @fileOverview An AI flow for conducting deep research on a given topic, inspired by Kimi-Research.
  *
  * - deepResearch - A function that handles the research process.
  * - DeepResearchInput - The input type for the deepResearch function.
@@ -23,16 +23,10 @@ const SourceSchema = z.object({
     publication: z.string().optional().describe("The name of the publication or website (e.g., 'Forbes', 'Wikipedia').")
 });
 
-const DataPointSchema = z.object({
-    point: z.string().describe("The name of the data point or statistic (e.g., 'Market Size 2023')."),
-    value: z.string().describe("The value of the data point (e.g., '$1.2 Trillion')."),
-    context: z.string().optional().describe("A brief context for the data point.")
-});
-
 const DeepResearchOutputSchema = z.object({
-  summary: z.string().describe('A comprehensive summary of the research topic, incorporating the focus points.'),
+  summary: z.string().max(250, "Summary must be less than 250 words.").describe('A concise summary of the key findings, under 250 words.'),
   sources: z.array(SourceSchema).describe('A list of plausible sources the AI might have used to generate the summary. These are for reference and may not be real.'),
-  dataPoints: z.array(DataPointSchema).describe('A list of key statistics, figures, or important data points found during the research.'),
+  followUpQuestions: z.array(z.string()).length(3).describe('An array of exactly three insightful follow-up questions based on the research.'),
 });
 export type DeepResearchOutput = z.infer<typeof DeepResearchOutputSchema>;
 
@@ -44,24 +38,23 @@ const prompt = ai.definePrompt({
   name: 'deepResearchPrompt',
   input: {schema: DeepResearchInputSchema},
   output: {schema: DeepResearchOutputSchema},
-  prompt: `You are a highly skilled research assistant. Your task is to conduct in-depth research on a given topic and provide a structured report.
+  prompt: `You are Kimi-Research, a helpful research assistant.
+Given a topic, you MUST:
+1. Search the web for the latest findings (and list these as plausible sources with URLs).
+2. Summarize key points in ≤250 words.
+3. End by generating exactly 3 insightful follow-up questions.
 
 Research Topic:
-{{{topic}}}
+"{{{topic}}}"
 
 {{#if focusPoints}}
 Key Focus Points:
 {{{focusPoints}}}
-Please ensure your research and summary specifically address these points.
+Please ensure your research specifically addresses these points.
 {{/if}}
 
-Based on your knowledge, please perform the following actions:
-1.  **Generate a comprehensive Summary:** Write a detailed summary of the topic. If focus points are provided, make sure your summary covers them thoroughly.
-2.  **Extract Key Data Points:** Identify and list critical statistics, figures, or quantifiable data related to the topic. For each data point, provide a 'point' (the metric name), a 'value', and optional 'context'.
-3.  **List Plausible Sources:** Provide a list of credible, plausible sources that would typically cover this topic. For each source, include a title, a full URL, and the publication name. These sources should appear realistic and relevant, even if you are generating them from your internal knowledge.
-
 Structure your entire response as a single, valid JSON object that strictly conforms to the provided output schema.
-The goal is to deliver a well-researched, easy-to-digest report that a user can use for further work.
+The summary should be concise and under 250 words. The 'followUpQuestions' field must contain exactly three string questions.
 `,
 });
 
