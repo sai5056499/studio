@@ -12,10 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { deepResearch, type DeepResearchInput, type DeepResearchOutput } from "@/ai/flows/deep-research-flow";
-import { Loader2, Sparkles, BookCopy, FileText, Bot, HelpCircle } from "lucide-react";
+import { Loader2, Sparkles, BookCopy, FileText, Bot, HelpCircle, Library } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import Link from 'next/link'; // Use next/link for internal navigation if needed
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 
 const researchSchema = z.object({
   topic: z.string().min(5, "Topic must be at least 5 characters long."),
@@ -64,8 +64,8 @@ export default function ResearchPage() {
     <div className="flex h-full flex-col">
       <AppHeader title="Deep Research Agent" />
       <main className="flex-1 overflow-y-auto p-4 md:p-6">
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2 @container">
-          <Card className="lg:col-span-1 shadow-lg">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center text-2xl">
                 <Bot className="mr-3 h-7 w-7 text-primary" /> Research Agent
@@ -113,14 +113,48 @@ export default function ResearchPage() {
             </CardContent>
           </Card>
 
-          <div className="lg:col-span-1">
-            <Card className="shadow-lg h-full flex flex-col">
+          <Card className="shadow-lg h-full flex flex-col">
               <CardHeader>
-                <CardTitle>Research Results</CardTitle>
-                <CardDescription>The AI's findings will appear here.</CardDescription>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <CardTitle>Research Results</CardTitle>
+                        <CardDescription>The AI's findings will appear here.</CardDescription>
+                    </div>
+                    {researchOutput && researchOutput.sources.length > 0 && (
+                       <Sheet>
+                        <SheetTrigger asChild>
+                            <Button variant="outline">
+                               <Library className="mr-2 h-4 w-4" /> View Sources ({researchOutput.sources.length})
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent className="w-full sm:max-w-md">
+                            <SheetHeader>
+                                <SheetTitle className="flex items-center"><BookCopy className="mr-2 h-5 w-5 text-primary" />Sources</SheetTitle>
+                                <SheetDescription>The AI referenced these sources to generate the summary. Note: These may not always be real or currently accessible.</SheetDescription>
+                            </SheetHeader>
+                            <ScrollArea className="h-[calc(100%-6rem)] mt-4 pr-3">
+                                <ul className="space-y-4">
+                                  {researchOutput.sources.map((source, index) => (
+                                    <li key={index} className="flex items-start p-2 rounded-md border bg-muted/30">
+                                      <span className="text-muted-foreground mr-3 font-mono text-sm mt-1">{index + 1}.</span>
+                                      <div>
+                                        <span className="font-medium text-foreground">{source.title}</span>
+                                        {source.publication && <span className="text-muted-foreground text-xs"> ({source.publication})</span>}
+                                        <a href={source.url} target="_blank" rel="noopener noreferrer" className="block text-xs text-blue-500 hover:underline truncate">
+                                          {source.url}
+                                        </a>
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                            </ScrollArea>
+                        </SheetContent>
+                    </Sheet>
+                    )}
+                </div>
               </CardHeader>
               <CardContent className="flex-1">
-                <ScrollArea className="h-[calc(100%-4rem)] w-full rounded-md border p-4 bg-muted/30 min-h-[300px]">
+                <ScrollArea className="h-full w-full rounded-md border p-4 bg-muted/30 min-h-[300px]">
                   {isResearching ? (
                     <div className="flex flex-col items-center justify-center h-full text-center">
                       <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
@@ -132,28 +166,7 @@ export default function ResearchPage() {
                         <h3 className="font-semibold text-lg flex items-center mb-2"><FileText className="mr-2 h-5 w-5 text-primary" />Summary</h3>
                         <p className="whitespace-pre-wrap leading-relaxed">{researchOutput.summary}</p>
                       </div>
-                       <div>
-                        <h3 className="font-semibold text-lg flex items-center mb-2"><BookCopy className="mr-2 h-5 w-5 text-primary" />Sources</h3>
-                         <ul className="space-y-3">
-                          {researchOutput.sources.map((source, index) => (
-                            <li key={index} className="flex items-start">
-                              <span className="text-muted-foreground mr-2 font-mono text-xs mt-1">{index + 1}.</span>
-                              <div>
-                                <span className="font-medium text-foreground">{source.title}</span>
-                                {source.publication && <span className="text-muted-foreground text-xs"> ({source.publication})</span>}
-                                <a href={source.url} target="_blank" rel="noopener noreferrer" className="block text-xs text-blue-500 hover:underline truncate">
-                                  {source.url}
-                                </a>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                         <Alert variant="default" className="mt-4 bg-primary/5">
-                           <AlertDescription className="text-xs text-foreground/80">
-                            Note: Sources are generated by the AI based on its training data and may not always be real or currently accessible.
-                           </AlertDescription>
-                         </Alert>
-                      </div>
+                      
                       <div>
                         <h3 className="font-semibold text-lg flex items-center mb-2"><HelpCircle className="mr-2 h-5 w-5 text-primary" />Follow-up Questions</h3>
                         <ul className="space-y-2 list-inside">
@@ -175,7 +188,6 @@ export default function ResearchPage() {
                 </ScrollArea>
               </CardContent>
             </Card>
-          </div>
         </div>
       </main>
     </div>
