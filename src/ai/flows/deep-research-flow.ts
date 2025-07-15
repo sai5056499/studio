@@ -12,6 +12,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { DeepResearchOutputSchema, type Source } from '@/lib/types';
+import { parseSources } from '@/services/parser-service';
 
 // Define the input and output types for the main flow
 const DeepResearchInputSchema = z.object({
@@ -30,32 +31,22 @@ const webSearchTool = ai.defineTool(
       query: z.string().describe("The search query, which should be the research topic and any focus points."),
     }),
     outputSchema: z.object({
-      sources: z.array(z.object({
-        title: z.string().describe("The title of the article or webpage."),
-        url: z.string().describe("The full URL of the source."),
-        snippet: z.string().describe("A short, relevant snippet from the source."),
-        publication: z.string().optional().describe("The name of the publishing website or organization.")
-      })).describe("A list of up to 7 relevant sources found on the web.")
+        sources: z.string().describe("A string containing up to 7 relevant sources found on the web, formatted as 'Title | URL | Publication' with each source on a new line. If no sources are found, this should be an empty string.")
     }),
   },
   async (input) => {
     // In a real application, this could be a call to a real search API (e.g., Google Search, Serper).
     // Here, we use another LLM call to *simulate* the search results.
     const searcher = await ai.generate({
-      prompt: `You are a web search engine. Given the search query "${input.query}", find the 7 most relevant and up-to-date articles. For each, provide a realistic title, a plausible full URL, a publication name, and a concise, relevant snippet.`,
+      prompt: `You are a web search engine. Given the search query "${input.query}", find the 7 most relevant and up-to-date articles. For each, provide a realistic title, a plausible full URL, a publication name, and a concise, relevant snippet. Format the entire output as a single string, with each source on a new line, using '|' as a separator: "Title | URL | Publication". If you cannot find relevant sources, return an empty string.`,
       output: {
         schema: z.object({
-          sources: z.array(z.object({
-            title: z.string(),
-            url: z.string(),
-            snippet: z.string(),
-            publication: z.string().optional()
-          }))
+            sources: z.string()
         })
       },
       // Use a different model if needed, or stick with the default
     });
-    return searcher.output() || { sources: [] };
+    return searcher.output() || { sources: "" };
   }
 );
 
@@ -67,15 +58,16 @@ const researcherPrompt = ai.definePrompt({
     input: { schema: DeepResearchInputSchema },
     output: { schema: z.object({
       summary: z.string().max(250).describe("A concise summary of key findings, under 250 words, synthesized *only* from the provided search results."),
-      followUpQuestions: z.array(z.string()).length(3).describe("An array of exactly three insightful follow-up questions based on the research.")
+      followUpQuestions: z.array(z.string()).describe("An array of insightful follow-up questions based on the research. Can be empty if no sources are found.")
     }) },
     prompt: `You are Kimi-Research, a helpful research assistant.
 You have access to a web search tool.
 Given the user's research topic, your process is:
 1.  First, use the 'webSearch' tool with a query based on the topic and focus points to find relevant articles.
 2.  Then, using *only the information from the search results provided by the tool*, synthesize a concise summary of the key findings (under 250 words).
-3.  Finally, based on the synthesized summary, provide exactly three insightful follow-up questions.
+3.  Finally, based on the synthesized summary, provide three insightful follow-up questions.
 
+If the 'webSearch' tool returns no sources, your summary MUST be "No relevant sources were found." and the followUpQuestions array MUST be empty.
 Do not use any information other than what the 'webSearch' tool returns.
 Your entire response must be a single, valid JSON object and nothing else. Do not include any text before or after the JSON object.
 
@@ -97,14 +89,12 @@ export async function deepResearch(input: DeepResearchInput): Promise<DeepResear
   
   // The tool's output is available in the 'data' part of the response history
   const toolOutputs = result.history?.filter(m => m.role === 'tool') || [];
-  const searchResults = toolOutputs.reduce((acc, curr) => {
-    // Ensure curr.data and curr.data.sources exist before trying to spread them
-    if (curr.data && (curr.data as any).sources) {
-      const toolData = curr.data as { sources: Source[] };
-      acc.push(...toolData.sources);
-    }
-    return acc;
-  }, [] as Source[]);
+  
+  let searchResults: Source[] = [];
+  if (toolOutputs.length > 0 && toolOutputs[0].data && (toolOutputs[0].data as any).sources) {
+    const sourcesText = (toolOutputs[0].data as { sources: string }).sources;
+    searchResults = await parseSources(sourcesText);
+  }
 
   return {
     summary: result.output.summary,
