@@ -81,16 +81,3 @@ export interface Source {
   snippet: string;
   publication?: string;
 }
-
-export const DeepResearchOutputSchema = z.object({
-  summary: z.string().describe('A concise summary of the key findings.'),
-  sources: z.array(z.object({
-    title: z.string(),
-    url: z.string(),
-    snippet: z.string(),
-    publication: z.string().optional()
-  })).describe('A list of sources used for the summary.'),
-  followUpQuestions: z.array(z.string()).length(3).describe('An array of exactly three insightful follow-up questions.'),
-});
-
-export type DeepResearchOutput = z.infer<typeof DeepResearchOutputSchema>;

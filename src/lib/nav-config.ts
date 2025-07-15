@@ -26,7 +26,6 @@ export const defaultNavItems: NavItem[] = [
   { href: "/translate", label: "Translate", icon: Languages },
   { href: "/ocr", label: "OCR", icon: ScanText },
   { href: "/chat-pdf", label: "Chat PDF", icon: FileQuestion },
-  { href: "/research", label: "Research Agent", icon: Bot },
   { href: "/planning", label: "Task Planning", icon: ListChecks },
   { href: "/habits", label: "Habits", icon: Zap }, 
   { href: "/analytics", label: "Analytics", icon: BarChart3 }, 
