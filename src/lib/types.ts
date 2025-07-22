@@ -4,7 +4,6 @@ import type { ImprovePageContentOutput } from "@/ai/flows/improve-page-content";
 // Import the AI output type directly to ensure consistency
 import type { AiPoweredTaskPlanningOutput as AiTaskOutput } from "@/ai/flows/ai-powered-task-planning";
 import type { LucideIcon } from "lucide-react";
-import { z } from "zod";
 
 export interface ChatMessage {
   id: string;
@@ -73,11 +72,3 @@ export type NavItem = {
   label: string;
   icon: LucideIcon;
 };
-
-// Research Agent Types
-export interface Source {
-  title: string;
-  url: string;
-  snippet: string;
-  publication?: string;
-}

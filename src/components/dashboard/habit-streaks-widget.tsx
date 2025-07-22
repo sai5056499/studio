@@ -79,7 +79,7 @@ export function HabitStreaksWidget() {
     return (
         <Card className="bg-secondary/30">
             <CardHeader>
-                <CardTitle className="text-lg flex items-center"><Zap className="mr-2 h-5 w-5 text-accent"/>No Habits Tracked</CardTitle>
+                <CardTitle className="text-lg flex items-center"><Zap className="mr-2 h-5 w-5 text-primary"/>No Habits Tracked</CardTitle>
                 <CardDescription>Start tracking your daily habits to build streaks and achieve your goals.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -95,7 +95,7 @@ export function HabitStreaksWidget() {
     <Card className="shadow-lg">
         <CardHeader>
             <CardTitle className="text-lg flex items-center">
-                <TrendingUp className="mr-3 h-5 w-5 text-accent" /> Daily Habits
+                <TrendingUp className="mr-3 h-5 w-5 text-primary" /> Daily Habits
             </CardTitle>
             <CardDescription>A quick look at your daily habit progress. View all in the Habits tab.</CardDescription>
         </CardHeader>

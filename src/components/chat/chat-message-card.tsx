@@ -5,7 +5,7 @@ import type { ChatMessage, PlannedTask } from "@/lib/types"; // Use PlannedTask 
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, User, AlertTriangle, CheckCircle, Sparkles } from "lucide-react";
+import { Bot, User, AlertTriangle, CheckCircle, Sparkles, Circle } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -170,4 +170,3 @@ export function ChatMessageCard({ message }: ChatMessageCardProps) {
     </div>
   );
 }
-
