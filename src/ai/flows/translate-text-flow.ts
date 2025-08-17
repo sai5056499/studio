@@ -62,11 +62,14 @@ const translateTextFlow = ai.defineFlow(
     outputSchema: TranslateTextOutputSchema,
   },
   async (input: TranslateTextInput) => {
-    // If sourceLanguage is "auto", remove it so the prompt triggers auto-detection logic
-    const promptInput = {...input};
-    if (input.sourceLanguage === "auto") {
-      delete promptInput.sourceLanguage;
-    }
+    // If sourceLanguage is "auto", prepare an input object for the prompt that omits it.
+    const promptInput =
+      input.sourceLanguage === 'auto'
+        ? {
+            textToTranslate: input.textToTranslate,
+            targetLanguage: input.targetLanguage,
+          }
+        : input;
     
     const {output} = await prompt(promptInput);
     if (!output) {
@@ -75,5 +78,3 @@ const translateTextFlow = ai.defineFlow(
     return output;
   }
 );
-
-    
