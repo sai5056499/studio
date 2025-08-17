@@ -1,0 +1,56 @@
+
+.cube-viewport {
+  perspective: 800px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100px; /* Adjust size as needed */
+  height: 100px; /* Adjust size as needed */
+  margin-bottom: 1rem; /* Space below the cube */
+}
+
+.cube-container {
+  position: relative;
+  width: 60px; /* Cube actual size */
+  height: 60px; /* Cube actual size */
+  transform-style: preserve-3d;
+  animation: rotateCube 20s infinite linear;
+}
+
+.cube {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  transform-style: preserve-3d;
+}
+
+.face {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border: 1px solid hsl(var(--border));
+  opacity: 0.85;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 10px; /* Optional: if you want to put text/icons on faces */
+  color: hsl(var(--primary-foreground));
+}
+
+/* Define colors based on your theme variables */
+.face.front  { background: hsl(var(--primary) / 0.7); transform: rotateY(  0deg) translateZ(30px); }
+.face.back   { background: hsl(var(--primary) / 0.6); transform: rotateY(180deg) translateZ(30px); }
+.face.right  { background: hsl(var(--accent) / 0.7);  transform: rotateY( 90deg) translateZ(30px); }
+.face.left   { background: hsl(var(--accent) / 0.6);  transform: rotateY(-90deg) translateZ(30px); }
+.face.top    { background: hsl(var(--secondary) / 0.7); transform: rotateX( 90deg) translateZ(30px); }
+.face.bottom { background: hsl(var(--secondary) / 0.6); transform: rotateX(-90deg) translateZ(30px); }
+
+
+@keyframes rotateCube {
+  0% {
+    transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+  }
+  100% {
+    transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg);
+  }
+}
