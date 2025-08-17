@@ -2,7 +2,6 @@
 "use client";
 
 import React from 'react';
-import './rotating-cube.css'; // We'll create this CSS file
 
 const RotatingCube = () => {
   return (
