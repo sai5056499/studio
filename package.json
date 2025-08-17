@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "genkit:dev": "genkit start --exec \"tsx src/ai/dev.ts\"",
-    "genkit:watch": "genkit start --exec \"tsx src/ai/dev.ts\"",
+    "genkit:watch": "genkit start",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
