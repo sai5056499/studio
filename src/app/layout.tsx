@@ -5,6 +5,7 @@ import "./globals.css";
 import { SidebarProvider, SidebarInset, SidebarRail } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from "@/contexts/auth-context";
 import { ChatProvider } from "@/contexts/chat-context";
 import { TaskProvider } from "@/contexts/task-context";
 import { HabitProvider } from "@/contexts/habit-context";
@@ -47,19 +48,21 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         data-theme={initialTheme}
       >
-        <ChatProvider>
-          <TaskProvider>
-            <HabitProvider>
-              <SidebarProvider defaultOpen={false}>
-                <AppSidebar />
-                <SidebarRail />
-                <SidebarInset>
-                  {children}
-                </SidebarInset>
-              </SidebarProvider>
-            </HabitProvider>
-          </TaskProvider>
-        </ChatProvider>
+        <AuthProvider>
+          <ChatProvider>
+            <TaskProvider>
+              <HabitProvider>
+                <SidebarProvider defaultOpen={false}>
+                  <AppSidebar />
+                  <SidebarRail />
+                  <SidebarInset>
+                    {children}
+                  </SidebarInset>
+                </SidebarProvider>
+              </HabitProvider>
+            </TaskProvider>
+          </ChatProvider>
+        </AuthProvider>
         <Toaster />
       </body>
     </html>
